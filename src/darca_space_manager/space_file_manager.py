@@ -18,7 +18,6 @@ from darca_yaml.yaml_utils import YamlUtils
 
 from darca_space_manager.space_manager import (
     SpaceManager,
-    SpaceManagerException,
 )
 
 # Initialize logger
@@ -60,7 +59,10 @@ class SpaceFileManager:
         base_path = self.space_manager._get_space_path(space_name)
         if not full_path.startswith(base_path):
             raise SpaceFileManagerException(
-                message=f"Attempted to access outside of space boundary: {relative_path}",
+                message=(
+                    f"Attempted to access outside of "
+                    f"space boundary: {relative_path}"
+                ),
                 error_code="INVALID_FILE_PATH",
                 metadata={"space": space_name, "resolved_path": full_path},
             )
@@ -72,7 +74,8 @@ class SpaceFileManager:
 
     def get_file(self, space_name: str, relative_path: str) -> str:
         """
-        Get the ASCII content of a file. Returns raw text even for YAML/JSON files.
+        Get the ASCII content of a file. Returns raw text even
+        for YAML/JSON files.
 
         Args:
             space_name (str): Name of the space.
@@ -93,7 +96,10 @@ class SpaceFileManager:
             return FileUtils.read_file(file_path, mode="r", encoding="ascii")
         except Exception as e:
             raise SpaceFileManagerException(
-                message=f"Failed to read file '{relative_path}' in space '{space_name}'.",
+                message=(
+                    f"Failed to read file '{relative_path}' "
+                    f"in space '{space_name}'."
+                ),
                 error_code="FILE_READ_FAILED",
                 metadata={"space": space_name, "file": relative_path},
                 cause=e,
@@ -158,7 +164,10 @@ class SpaceFileManager:
             raise  # Let specific exceptions bubble up
         except Exception as e:
             raise SpaceFileManagerException(
-                message=f"Failed to write file '{relative_path}' in space '{space_name}'.",
+                message=(
+                    f"Failed to write file '{relative_path}' "
+                    f"in space '{space_name}'."
+                ),
                 error_code="FILE_WRITE_FAILED",
                 metadata={"space": space_name, "file": relative_path},
                 cause=e,
@@ -187,7 +196,10 @@ class SpaceFileManager:
             return FileUtils.remove_file(file_path)
         except Exception as e:
             raise SpaceFileManagerException(
-                message=f"Failed to delete file '{relative_path}' in space '{space_name}'.",
+                message=(
+                    f"Failed to delete file '{relative_path}' "
+                    f"in space '{space_name}'."
+                ),
                 error_code="FILE_DELETE_FAILED",
                 metadata={"space": space_name, "file": relative_path},
                 cause=e,
