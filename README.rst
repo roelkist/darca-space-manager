@@ -78,7 +78,7 @@ This project is licensed under the MIT License. See ``LICENSE`` for full terms.
    :target: https://github.com/roelkist/darca-space-manager/actions
 .. |Deploy Status| image:: https://github.com/roelkist/darca-space-manager/actions/workflows/cd.yml/badge.svg
    :target: https://github.com/roelkist/darca-space-manager/actions
-.. |Codecov| image:: https://codecov.io/gh/your-username/your-repo/branch/main/graph/badge.svg
+.. |Codecov| image:: https://codecov.io/gh/roelkist/darca-space-manager/branch/main/graph/badge.svg
    :target: https://codecov.io/gh/roelkist/darca-space-manager
    :alt: Codecov
 .. |Formatting| image:: https://img.shields.io/badge/code%20style-black-000000.svg
