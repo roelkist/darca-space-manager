@@ -3,7 +3,7 @@ darca-space-manager
 
 A local storage abstraction layer for managing logical spaces using the filesystem and YAML metadata.
 
-|Build Status| |License|
+|Build Status| |Deploy Status| |CodeCov| |Formatting| |License| |PyPi Version| 
 
 Overview
 --------
@@ -76,5 +76,16 @@ This project is licensed under the MIT License. See ``LICENSE`` for full terms.
 
 .. |Build Status| image:: https://github.com/roelkist/darca-space-manager/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/roelkist/darca-space-manager/actions
+.. |Deploy Status| image:: https://github.com/roelkist/darca-space-manager/actions/workflows/cd.yml/badge.svg
+   :target: https://github.com/roelkist/darca-space-manager/actions
+.. |Codecov| image:: https://codecov.io/gh/your-username/your-repo/branch/main/graph/badge.svg
+   :target: https://codecov.io/gh/roelkist/darca-space-manager
+   :alt: Codecov
+.. |Formatting| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/psf/black
+   :alt: Black code style
 .. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg
    :target: https://opensource.org/licenses/MIT
+.. |PyPi Version| image:: https://img.shields.io/pypi/v/darca-yaml
+   :target: https://pypi.org/project/darca-yaml/
+   :alt: PyPi

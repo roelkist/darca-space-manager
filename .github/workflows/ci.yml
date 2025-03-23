@@ -46,3 +46,12 @@ jobs:
         with:
           name: sphinx-docs-${{ matrix.python-version }}
           path: docs/build/html/
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          flags: python-${{ matrix.python-version }}
+          name: codecov-${{ matrix.python-version }}
+          fail_ci_if_error: true
