@@ -1,78 +1,83 @@
-Contributing to darca-yaml
-==========================
+Contributing to darca-space-manager
+===================================
 
-We're glad you're interested in contributing to **darca-yaml** 🧪📦  
-We follow a structured approach that ensures stability, consistency, and quality.
+Thanks for your interest in contributing to **darca-space-manager** — a project by `Roel Kist <https://github.com/roelkist>`_.
 
-🚫 No forking is necessary — we prefer pull requests directly from branches in this repo.
+We welcome issues, pull requests, questions, suggestions, and other contributions from the community.
 
 Getting Started
 ---------------
 
-1. **Clone this repository**:
+Clone the project and set up the development environment:
 
-   .. code-block:: bash
+.. code-block:: bash
 
-       git clone https://github.com/roelkist/darca-yaml
-       cd darca-yaml
+   git clone https://github.com/roelkist/darca-space-manager.git
+   cd darca-space-manager
+   make install
 
-2. **Create a feature branch**:
+This will create a virtual environment and install all dependencies needed for development, testing, and formatting.
 
-   .. code-block:: bash
+Workflow
+--------
 
-       git checkout -b feature/my-cool-update
+- 🔍 Open an issue first for bugs or major features
+- ✅ Fork, branch, and develop your changes
+- 📦 Run tests and checks locally before submitting your PR
+- 📝 Include docstrings and tests for new functionality
 
-3. **Install all dependencies** (including dev + docs):
+Make Targets
+------------
 
-   .. code-block:: bash
+.. code-block:: bash
 
-       make install
+   make test      # Run full test suite with coverage
+   make check     # Run linting, formatting, and typing
+   make format    # Auto-format code (black, ruff)
+   make clean     # Remove temp files, caches, build artifacts
 
-4. **Write your changes**, ensuring:
-   - You follow the existing structure and formatting
-   - You include/update tests to maintain 100% test coverage
-   - You write/update docstrings and examples
+Testing
+-------
 
-5. **Run all checks before committing**:
+Tests are located in the ``tests/`` directory and use `pytest`.
 
-   .. code-block:: bash
+All code contributions must be accompanied by appropriate tests and aim to maintain **100% coverage**:
 
-       make check
+.. code-block:: bash
 
-   This will run:
-   - Code formatters (Black + isort)
-   - Pre-commit validations
-   - Tests with coverage report
-   - Docs build
+   make test
 
-6. **Commit and push your branch**:
+Code Style
+----------
 
-   .. code-block:: bash
+This project enforces strict quality and consistency via:
 
-       git push origin feature/my-cool-update
+- **Black** – formatting
+- **Ruff** – linting and import sorting
+- **Mypy** – type checking
 
-7. **Open a Pull Request** to `main`.
+.. code-block:: bash
 
-   - Add a clear description of what you changed and why
-   - Link related issues if applicable
-   - CI will automatically validate your PR
+   make check     # Run all style and quality checks
+   make format    # Auto-fix lint and formatting issues
 
-Templates
----------
+Commit & Pull Request Guidelines
+--------------------------------
 
-- ✅ Feature Requests: use the GitHub issue template
-- 🐞 Bug Reports: include reproduction steps and logs
-- 📚 Doc Improvements: feel free to submit directly via PR!
+- Use clear, conventional commit messages
+- Keep PRs small and focused
+- Describe the change and link to any relevant issues
+- Pass all CI checks before review
 
-CI/CD Notes
------------
+Maintainer
+----------
 
-- `make ci` is used in GitHub Actions to perform the full validation suite
-- All individual `make` targets can be run locally for quicker dev cycles
+This project is developed and maintained by:
+
+**Roel Kist**  
+GitHub: https://github.com/roelkist
 
 License
 -------
 
-By contributing, you agree that your contributions will be licensed under the same license as the project: **MIT**
-
-Thank you 🙌
+All contributions are licensed under the MIT License.

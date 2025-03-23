@@ -1,81 +1,80 @@
-darca-yaml
-==========
+darca-space-manager
+===================
 
-A lightweight YAML utility library with validation support using Cerberus, designed for simplicity and composability in structured Python projects.
+A local storage abstraction layer for managing logical spaces using the filesystem and YAML metadata.
 
-.. image:: https://img.shields.io/pypi/v/darca-yaml
-    :target: https://pypi.org/project/darca-yaml/
-    :alt: PyPI
-
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/psf/black
-    :alt: Black code style
+|Build Status| |License|
 
 Overview
 --------
 
-**darca-yaml** provides utilities for:
+**darca-space-manager** provides a clean interface to create, delete, and manage isolated storage "spaces" on disk, each optionally enriched with YAML-based metadata. It is designed for modular integration with other DARCA services and utilities.
 
-- 📖 Loading and saving YAML files
-- ✅ Validating YAML content with Cerberus
-- 🔗 Integrated exception handling (`darca-exception`)
-- 📄 File handling via `darca-file-utils`
-- 🧪 100% test coverage with Pytest and CI integration
+Maintained by `Roel Kist <https://github.com/roelkist>`_
+
+Features
+--------
+
+- ✅ Create and delete isolated named spaces
+- 🗃️ Store and retrieve structured YAML metadata
+- 🔍 List and count all active spaces
+- 📁 Filesystem-based, no database required
+- 🧪 100% test coverage and automated CI
 
 Installation
 ------------
 
 .. code-block:: bash
 
-    pip install darca-yaml
+   git clone https://github.com/roelkist/darca-space-manager.git
+   cd darca-space-manager
+   make install
 
-Usage
------
+Quick Start
+-----------
 
 .. code-block:: python
 
-    from darca_yaml.yaml_utils import YamlUtils
+   from darca_space_manager.space_manager import SpaceManager
 
-    schema = {"name": {"type": "string"}, "enabled": {"type": "boolean"}}
+   manager = SpaceManager()
+   manager.create_space("demo", metadata={"purpose": "testing"})
 
-    data = YamlUtils.load_yaml_file("config.yaml")
-    YamlUtils.validate_yaml(data, schema)
-    YamlUtils.save_yaml_file("output.yaml", data, validate=True, schema=schema)
+   print(manager.space_exists("demo"))           # True
+   print(manager.get_space_metadata("demo"))     # {'purpose': 'testing'}
+   print(manager.list_spaces())                  # ['demo']
+   manager.delete_space("demo")
 
-Development Setup
------------------
+Development
+-----------
 
-Clone the repo and install dependencies:
-
-.. code-block:: bash
-
-    git clone https://github.com/roelkist/darca-yaml
-    cd darca-yaml
-    make install
-
-Run checks before committing:
+Run the full test suite and all linters:
 
 .. code-block:: bash
 
-    make check
+   make test     # Run tests with coverage
+   make check    # Run all quality tools (lint, type check, etc.)
+   make format   # Auto-format code with Black + Ruff
 
-Run individual targets (faster iteration):
+Project Layout
+--------------
 
-.. code-block:: bash
+.. code-block::
 
-    make format
-    make test
-    make precommit
-    make docs
+   src/darca_space_manager/
+   ├── space_manager.py       # Main logic
+   ├── config.py              # Directory configuration
+   └── __version__.py         # Version info
 
-Contribution Guide
-------------------
-
-We welcome contributions via **pull requests** to `main`.  
-Please see the `CONTRIBUTING.rst` file for detailed instructions.
+   tests/                     # Pytest suite
+   Makefile                   # Developer workflow commands
 
 License
 -------
 
-MIT
+This project is licensed under the MIT License. See ``LICENSE`` for full terms.
 
+.. |Build Status| image:: https://github.com/roelkist/darca-space-manager/actions/workflows/ci.yml/badge.svg
+   :target: https://github.com/roelkist/darca-space-manager/actions
+.. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg
+   :target: https://opensource.org/licenses/MIT

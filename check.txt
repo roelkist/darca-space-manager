@@ -6,341 +6,99 @@ rootdir: /mnt/home/rokist/Projects/Python/darca-space-manager
 configfile: pyproject.toml
 plugins: cov-6.0.0, xdist-3.6.1
 created: 12/12 workers
-12 workers [14 items]
+12 workers [18 items]
 
 scheduling tests via LoadScheduling
 
-tests/test_space_manager.py::test_delete_nonexistent 
-tests/test_space_manager.py::test_create_and_exist 
 tests/test_space_manager.py::test_list_and_count 
-tests/test_space_manager.py::test_duplicate_create 
-tests/test_space_manager.py::test_metadata_only_delete 
-tests/test_space_manager.py::test_get_metadata_failure 
-tests/test_space_manager.py::test_save_metadata_exception 
 tests/test_space_manager.py::test_get_metadata_success 
-tests/test_space_manager.py::test_list_spaces_exception 
+tests/test_space_manager.py::test_duplicate_create 
+tests/test_space_manager.py::test_delete_nonexistent 
 tests/test_space_manager.py::test_create_space_exception 
 tests/test_space_manager.py::test_delete_space 
-tests/test_space_manager.py::test_get_metadata_path_fail 
-[gw0] [  7%] PASSED tests/test_space_manager.py::test_create_and_exist 
+tests/test_space_manager.py::test_list_spaces_exception 
+tests/test_space_manager.py::test_metadata_only_delete 
+tests/test_space_manager.py::test_create_space_metadata_none 
+tests/test_space_manager.py::test_create_space_metadata_empty 
+tests/test_space_manager.py::test_create_and_exist 
+tests/test_space_manager.py::test_get_metadata_failure 
+[gw2] [  5%] PASSED tests/test_space_manager.py::test_list_and_count 
 tests/test_space_manager.py::test_read_metadata_exception 
-[gw2] [ 14%] PASSED tests/test_space_manager.py::test_list_and_count 
-[gw6] [ 21%] PASSED tests/test_space_manager.py::test_metadata_only_delete 
-[gw3] [ 28%] PASSED tests/test_space_manager.py::test_get_metadata_success 
-[gw5] [ 35%] PASSED tests/test_space_manager.py::test_delete_space 
-[gw1] [ 42%] PASSED tests/test_space_manager.py::test_duplicate_create 
-[gw7] [ 50%] PASSED tests/test_space_manager.py::test_delete_nonexistent 
-[gw9] [ 57%] FAILED tests/test_space_manager.py::test_create_space_exception 
+[gw10] [ 11%] PASSED tests/test_space_manager.py::test_create_space_metadata_empty 
+[gw9] [ 16%] PASSED tests/test_space_manager.py::test_create_space_metadata_none 
+[gw0] [ 22%] PASSED tests/test_space_manager.py::test_create_and_exist 
+tests/test_space_manager.py::test_save_metadata_exception 
+[gw7] [ 27%] PASSED tests/test_space_manager.py::test_metadata_only_delete 
+[gw3] [ 33%] PASSED tests/test_space_manager.py::test_get_metadata_success 
 tests/test_space_manager.py::test_write_metadata_exception 
-[gw4] [ 64%] PASSED tests/test_space_manager.py::test_get_metadata_failure 
-[gw8] [ 71%] PASSED tests/test_space_manager.py::test_list_spaces_exception 
-[gw11] [ 78%] FAILED tests/test_space_manager.py::test_get_metadata_path_fail 
-[gw10] [ 85%] FAILED tests/test_space_manager.py::test_save_metadata_exception 
-[gw0] [ 92%] FAILED tests/test_space_manager.py::test_read_metadata_exception 
-[gw1] [100%] FAILED tests/test_space_manager.py::test_write_metadata_exception 
+[gw6] [ 38%] PASSED tests/test_space_manager.py::test_delete_nonexistent 
+[gw5] [ 44%] PASSED tests/test_space_manager.py::test_delete_space 
+tests/test_space_manager.py::test_delete_metadata_failure 
+[gw4] [ 50%] PASSED tests/test_space_manager.py::test_get_metadata_failure 
+tests/test_space_manager.py::test_delete_metadata_file_missing 
+[gw11] [ 55%] FAILED tests/test_space_manager.py::test_create_space_exception 
+[gw4] [ 61%] PASSED tests/test_space_manager.py::test_delete_metadata_file_missing 
+[gw8] [ 66%] PASSED tests/test_space_manager.py::test_list_spaces_exception 
+[gw1] [ 72%] PASSED tests/test_space_manager.py::test_duplicate_create 
+tests/test_space_manager.py::test_get_metadata_path_fail 
+[gw2] [ 77%] PASSED tests/test_space_manager.py::test_read_metadata_exception 
+[gw1] [ 83%] PASSED tests/test_space_manager.py::test_get_metadata_path_fail 
+[gw0] [ 88%] PASSED tests/test_space_manager.py::test_save_metadata_exception 
+[gw3] [ 94%] PASSED tests/test_space_manager.py::test_write_metadata_exception 
+[gw5] [100%] PASSED tests/test_space_manager.py::test_delete_metadata_failure 
 
 =================================== FAILURES ===================================
 _________________________ test_create_space_exception __________________________
-[gw9] linux -- Python 3.12.3 /tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/bin/python
-
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76eff06ca3c0>
-space_manager = <darca_space_manager.space_manager.SpaceManager object at 0x76eff06ca390>
-unique_space_name = 'space_spacetest0'
-
-    def test_create_space_exception(monkeypatch, space_manager, unique_space_name):
-        """Simulate DirectoryUtils.create_directory failure"""
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.DirectoryUtils.create_directory",
-            lambda *_: False,
-        )
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.DirectoryUtils.directory_exist",
-            lambda *_: False,
-        )
-        # Force the metadata write to succeed so it reaches the directory logic
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.YamlUtils.save_yaml_file",
-            lambda *_args, **_kwargs: True,
-        )
->       with pytest.raises(SpaceManagerException, match="Failed to create space directory"):
-E       Failed: DID NOT RAISE <class 'darca_space_manager.space_manager.SpaceManagerException'>
-
-tests/test_space_manager.py:96: Failed
------------------------------ Captured stdout call -----------------------------
-[32m2025-03-23 16:58:55,074 - space_manager - INFO - Space 'space_spacetest0' successfully created.[0m
-_________________________ test_get_metadata_path_fail __________________________
 [gw11] linux -- Python 3.12.3 /tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/bin/python
 
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x761b9c1725d0>
-space_manager = <darca_space_manager.space_manager.SpaceManager object at 0x761b9c172540>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ef56ed526f0>
+tmp_path = PosixPath('/tmp/pytest-of-rokist/pytest-47/popen-gw11/test_create_space_exception0')
 
-    def test_get_metadata_path_fail(monkeypatch, space_manager):
-        """Simulate failure to build metadata path by mocking metadata_dir to an invalid object."""
-        class BadPath:
-            def __str__(self): raise Exception("metadata_dir is broken")
-    
-        monkeypatch.setattr(space_manager, "metadata_dir", BadPath())
-        with pytest.raises(SpaceManagerException, match="Failed to determine metadata path"):
->           space_manager.get_space_metadata("whatever")
-
-tests/test_space_manager.py:121: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <darca_space_manager.space_manager.SpaceManager object at 0x761b9c172540>
-name = 'whatever'
-
-    def get_space_metadata(self, name: str) -> dict:
-        """
-        Retrieve metadata associated with a space.
-    
-        Args:
-            name (str): Name of the space.
-    
-        Returns:
-            dict: Metadata dictionary.
-    
-        Raises:
-            SpaceManagerException: If metadata cannot be loaded.
-        """
-        logger.debug(f"Retrieving metadata for space '{name}'.")
-        if not self.space_exists(name):
->           raise SpaceManagerException(
-                message=f"Space '{name}' does not exist.",
-                error_code="SPACE_NOT_FOUND",
-                metadata={"space": name},
-            )
-E           darca_space_manager.space_manager.SpaceManagerException: [SPACE_NOT_FOUND] Space 'whatever' does not exist.
-
-src/darca_space_manager/space_manager.py:161: SpaceManagerException
-
-During handling of the above exception, another exception occurred:
-
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x761b9c1725d0>
-space_manager = <darca_space_manager.space_manager.SpaceManager object at 0x761b9c172540>
-
-    def test_get_metadata_path_fail(monkeypatch, space_manager):
-        """Simulate failure to build metadata path by mocking metadata_dir to an invalid object."""
-        class BadPath:
-            def __str__(self): raise Exception("metadata_dir is broken")
-    
-        monkeypatch.setattr(space_manager, "metadata_dir", BadPath())
->       with pytest.raises(SpaceManagerException, match="Failed to determine metadata path"):
-E       AssertionError: Regex pattern did not match.
-E        Regex: 'Failed to determine metadata path'
-E        Input: "[SPACE_NOT_FOUND] Space 'whatever' does not exist."
-
-tests/test_space_manager.py:120: AssertionError
------------------------------ Captured stdout call -----------------------------
-[31m2025-03-23 16:58:55,105 - darca-exception - ERROR - {"error_code": "SPACE_NOT_FOUND", "message": "Space 'whatever' does not exist.", "metadata": {"space": "whatever"}, "cause": null, "stack_trace": "NoneType: None\n"}[0m
-_________________________ test_save_metadata_exception _________________________
-[gw10] linux -- Python 3.12.3 /tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/bin/python
-
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7e9c2dafa780>
-space_manager = <darca_space_manager.space_manager.SpaceManager object at 0x7e9c2dafa750>
-unique_space_name = 'space_spacetest0'
-
-    def test_save_metadata_exception(monkeypatch, space_manager, unique_space_name):
-        """Simulate YamlUtils.save_yaml_file failure"""
+    def test_create_space_exception(monkeypatch, tmp_path):
+        """Simulate YamlUtils.save_yaml_file failure, rollback fails"""
+        base_dir = tmp_path / "darca_space"
         monkeypatch.setattr(
-            "darca_space_manager.space_manager.YamlUtils.save_yaml_file",
-            lambda *_args, **_kwargs: (_ for _ in ()).throw(Exception("boom")),
+            "darca_space_manager.config.DIRECTORIES",
+            {
+                "SPACE_DIR": str(base_dir / "spaces"),
+                "METADATA_DIR": str(base_dir / "metadata"),
+                "LOG_DIR": str(base_dir / "logs"),
+            },
         )
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.DirectoryUtils.directory_exist",
-            lambda *_: True,
-        )
-        with pytest.raises(SpaceManagerException, match="Failed to save metadata"):
->           space_manager.create_space(unique_space_name, metadata={"fail": True})
-
-tests/test_space_manager.py:111: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <darca_space_manager.space_manager.SpaceManager object at 0x7e9c2dafa750>
-name = 'space_spacetest0', metadata = {'fail': True}
-
-    def create_space(self, name: str, metadata: Optional[dict] = None) -> bool:
-        """
-        Allocate a new space with optional metadata.
+        space_manager = SpaceManager()
+        name = "failing_space"
     
-        Args:
-            name (str): Name of the space.
-            metadata (dict, optional): Optional metadata to store.
-    
-        Returns:
-            bool: True if space created successfully.
-    
-        Raises:
-            SpaceManagerException: If space already exists or creation fails.
-        """
-        logger.debug(f"Creating space '{name}' with metadata: {metadata}")
-        if self.space_exists(name):
->           raise SpaceManagerException(
-                message=f"Space '{name}' already exists.",
-                error_code="SPACE_ALREADY_EXISTS",
-                metadata={"space": name},
-            )
-E           darca_space_manager.space_manager.SpaceManagerException: [SPACE_ALREADY_EXISTS] Space 'space_spacetest0' already exists.
-
-src/darca_space_manager/space_manager.py:110: SpaceManagerException
-
-During handling of the above exception, another exception occurred:
-
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7e9c2dafa780>
-space_manager = <darca_space_manager.space_manager.SpaceManager object at 0x7e9c2dafa750>
-unique_space_name = 'space_spacetest0'
-
-    def test_save_metadata_exception(monkeypatch, space_manager, unique_space_name):
-        """Simulate YamlUtils.save_yaml_file failure"""
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.YamlUtils.save_yaml_file",
-            lambda *_args, **_kwargs: (_ for _ in ()).throw(Exception("boom")),
-        )
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.DirectoryUtils.directory_exist",
-            lambda *_: True,
-        )
->       with pytest.raises(SpaceManagerException, match="Failed to save metadata"):
-E       AssertionError: Regex pattern did not match.
-E        Regex: 'Failed to save metadata'
-E        Input: "[SPACE_ALREADY_EXISTS] Space 'space_spacetest0' already exists."
-
-tests/test_space_manager.py:110: AssertionError
------------------------------ Captured stdout call -----------------------------
-[31m2025-03-23 16:58:55,103 - darca-exception - ERROR - {"error_code": "SPACE_ALREADY_EXISTS", "message": "Space 'space_spacetest0' already exists.", "metadata": {"space": "space_spacetest0"}, "cause": null, "stack_trace": "NoneType: None\n"}[0m
-_________________________ test_read_metadata_exception _________________________
-[gw0] linux -- Python 3.12.3 /tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/bin/python
-
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d04229963c0>
-space_manager = <darca_space_manager.space_manager.SpaceManager object at 0x7d04229966c0>
-unique_space_name = 'space_spacetest1'
-
-    def test_read_metadata_exception(monkeypatch, space_manager, unique_space_name):
-        """Simulate FileUtils.read_file failure"""
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.FileUtils.read_file",
-            lambda *_: (_ for _ in ()).throw(Exception("read boom")),
-        )
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.DirectoryUtils.directory_exist",
-            lambda *_: True,
-        )
         monkeypatch.setattr(
             "darca_space_manager.space_manager.DirectoryUtils.create_directory",
             lambda *_: True,
         )
         monkeypatch.setattr(
-            "darca_space_manager.space_manager.FileUtils.write_file",
-            lambda *_: True,
+            "darca_space_manager.space_manager.YamlUtils.save_yaml_file",
+            lambda *_: (_ for _ in ()).throw(Exception("force metadata fail")),
         )
->       space_manager.create_space(unique_space_name, metadata={"x": 1})
+        monkeypatch.setattr(
+            "darca_space_manager.space_manager.DirectoryUtils.remove_directory",
+            lambda *_: (_ for _ in ()).throw(Exception("rollback failed")),
+        )
+    
+        with pytest.raises(SpaceManagerException, match="Failed to store metadata"):
+>           space_manager.create_space(name, metadata={"some": "data"})
 
-tests/test_space_manager.py:142: 
+tests/test_space_manager.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/darca_space_manager/space_manager.py:135: in create_space
+    DirectoryUtils.remove_directory(self._get_space_path(name))
+tests/test_space_manager.py:119: in <lambda>
+    lambda *_: (_ for _ in ()).throw(Exception("rollback failed")),
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = <darca_space_manager.space_manager.SpaceManager object at 0x7d04229966c0>
-name = 'space_spacetest1', metadata = {'x': 1}
+.0 = <tuple_iterator object at 0x7ef56ed528f0>
 
-    def create_space(self, name: str, metadata: Optional[dict] = None) -> bool:
-        """
-        Allocate a new space with optional metadata.
-    
-        Args:
-            name (str): Name of the space.
-            metadata (dict, optional): Optional metadata to store.
-    
-        Returns:
-            bool: True if space created successfully.
-    
-        Raises:
-            SpaceManagerException: If space already exists or creation fails.
-        """
-        logger.debug(f"Creating space '{name}' with metadata: {metadata}")
-        if self.space_exists(name):
->           raise SpaceManagerException(
-                message=f"Space '{name}' already exists.",
-                error_code="SPACE_ALREADY_EXISTS",
-                metadata={"space": name},
-            )
-E           darca_space_manager.space_manager.SpaceManagerException: [SPACE_ALREADY_EXISTS] Space 'space_spacetest1' already exists.
+>       lambda *_: (_ for _ in ()).throw(Exception("rollback failed")),
+    )
+E   Exception: rollback failed
 
-src/darca_space_manager/space_manager.py:110: SpaceManagerException
------------------------------ Captured stdout call -----------------------------
-[31m2025-03-23 16:58:55,116 - darca-exception - ERROR - {"error_code": "SPACE_ALREADY_EXISTS", "message": "Space 'space_spacetest1' already exists.", "metadata": {"space": "space_spacetest1"}, "cause": null, "stack_trace": "NoneType: None\n"}[0m
-________________________ test_write_metadata_exception _________________________
-[gw1] linux -- Python 3.12.3 /tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/bin/python
-
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7be450f52480>
-space_manager = <darca_space_manager.space_manager.SpaceManager object at 0x7be450f527e0>
-unique_space_name = 'space_spacetest1'
-
-    def test_write_metadata_exception(monkeypatch, space_manager, unique_space_name):
-        """Simulate FileUtils.write_file failure during metadata write"""
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.FileUtils.write_file",
-            lambda *_: (_ for _ in ()).throw(Exception("write boom")),
-        )
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.DirectoryUtils.directory_exist",
-            lambda *_: True,
-        )
-        with pytest.raises(SpaceManagerException, match="Failed to write metadata"):
->           space_manager.create_space(unique_space_name, metadata={"bad": True})
-
-tests/test_space_manager.py:158: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <darca_space_manager.space_manager.SpaceManager object at 0x7be450f527e0>
-name = 'space_spacetest1', metadata = {'bad': True}
-
-    def create_space(self, name: str, metadata: Optional[dict] = None) -> bool:
-        """
-        Allocate a new space with optional metadata.
-    
-        Args:
-            name (str): Name of the space.
-            metadata (dict, optional): Optional metadata to store.
-    
-        Returns:
-            bool: True if space created successfully.
-    
-        Raises:
-            SpaceManagerException: If space already exists or creation fails.
-        """
-        logger.debug(f"Creating space '{name}' with metadata: {metadata}")
-        if self.space_exists(name):
->           raise SpaceManagerException(
-                message=f"Space '{name}' already exists.",
-                error_code="SPACE_ALREADY_EXISTS",
-                metadata={"space": name},
-            )
-E           darca_space_manager.space_manager.SpaceManagerException: [SPACE_ALREADY_EXISTS] Space 'space_spacetest1' already exists.
-
-src/darca_space_manager/space_manager.py:110: SpaceManagerException
-
-During handling of the above exception, another exception occurred:
-
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7be450f52480>
-space_manager = <darca_space_manager.space_manager.SpaceManager object at 0x7be450f527e0>
-unique_space_name = 'space_spacetest1'
-
-    def test_write_metadata_exception(monkeypatch, space_manager, unique_space_name):
-        """Simulate FileUtils.write_file failure during metadata write"""
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.FileUtils.write_file",
-            lambda *_: (_ for _ in ()).throw(Exception("write boom")),
-        )
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.DirectoryUtils.directory_exist",
-            lambda *_: True,
-        )
->       with pytest.raises(SpaceManagerException, match="Failed to write metadata"):
-E       AssertionError: Regex pattern did not match.
-E        Regex: 'Failed to write metadata'
-E        Input: "[SPACE_ALREADY_EXISTS] Space 'space_spacetest1' already exists."
-
-tests/test_space_manager.py:157: AssertionError
------------------------------ Captured stdout call -----------------------------
-[31m2025-03-23 16:58:55,123 - darca-exception - ERROR - {"error_code": "SPACE_ALREADY_EXISTS", "message": "Space 'space_spacetest1' already exists.", "metadata": {"space": "space_spacetest1"}, "cause": null, "stack_trace": "NoneType: None\n"}[0m
+tests/test_space_manager.py:119: Exception
 
 ---------- coverage: platform linux, python 3.12.3-final-0 -----------
 Name                                       Stmts   Miss  Cover
@@ -348,22 +106,12 @@ Name                                       Stmts   Miss  Cover
 src/darca_space_manager/__init__.py            0      0   100%
 src/darca_space_manager/__version__.py         3      3     0%
 src/darca_space_manager/config.py              6      0   100%
-src/darca_space_manager/space_manager.py      74     11    85%
+src/darca_space_manager/space_manager.py      74      4    95%
 --------------------------------------------------------------
-TOTAL                                         83     14    83%
+TOTAL                                         83      7    92%
 Coverage HTML written to dir htmlcov
 Coverage JSON written to file coverage.json
 
 =========================== short test summary info ============================
-FAILED tests/test_space_manager.py::test_create_space_exception - Failed: DID NOT RAISE <class 'darca_space_manager.space_manager.SpaceManagerException'>
-FAILED tests/test_space_manager.py::test_get_metadata_path_fail - AssertionError: Regex pattern did not match.
- Regex: 'Failed to determine metadata path'
- Input: "[SPACE_NOT_FOUND] Space 'whatever' does not exist."
-FAILED tests/test_space_manager.py::test_save_metadata_exception - AssertionError: Regex pattern did not match.
- Regex: 'Failed to save metadata'
- Input: "[SPACE_ALREADY_EXISTS] Space 'space_spacetest0' already exists."
-FAILED tests/test_space_manager.py::test_read_metadata_exception - darca_space_manager.space_manager.SpaceManagerException: [SPACE_ALREADY_EXISTS] Space 'space_spacetest1' already exists.
-FAILED tests/test_space_manager.py::test_write_metadata_exception - AssertionError: Regex pattern did not match.
- Regex: 'Failed to write metadata'
- Input: "[SPACE_ALREADY_EXISTS] Space 'space_spacetest1' already exists."
-========================= 5 failed, 9 passed in 1.42s ==========================
+FAILED tests/test_space_manager.py::test_create_space_exception - Exception: rollback failed
+========================= 1 failed, 17 passed in 1.27s =========================
