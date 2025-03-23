@@ -1,0 +1,37 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+  - id: check-added-large-files
+  - id: end-of-file-fixer
+    files: 'src/darca_space_manager/'
+  - id: trailing-whitespace
+    files: 'src/darca_space_manager/'
+  - id: check-yaml
+    files: '.github/'
+
+- repo: https://github.com/pycqa/flake8
+  rev: '7.1.2'
+  hooks:
+  - id: flake8
+    args: ["--max-line-length=79"]
+    exclude: docs
+
+- repo: https://github.com/PyCQA/isort
+  rev: '6.0.1'
+  hooks:
+  - id: isort
+    args: [-l79, --profile, black, --check, --diff]
+
+- repo: https://github.com/psf/black
+  rev: '25.1.0'
+  hooks:
+  - id: black
+    args: [-l79, --check, --diff, .]
+
+- repo: https://github.com/PyCQA/bandit
+  rev: '1.8.3'
+  hooks:
+  - id: bandit
+    args: ["-r", "src/darca_space_manager/"]
+    exclude: tests

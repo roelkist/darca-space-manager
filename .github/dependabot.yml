@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "pytest"
+        versions: [">=8.0.0"]
+      - dependency-name: "black"
+        versions: [">=24.0.0"]
