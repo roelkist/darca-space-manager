@@ -10,10 +10,10 @@ This implementation uses the local filesystem and YAML metadata files.
 import os
 from typing import List, Optional
 
-from darca_log_facility.logger import DarcaLogger
 from darca_exception.exception import DarcaException
 from darca_file_utils.directory_utils import DirectoryUtils
 from darca_file_utils.file_utils import FileUtils
+from darca_log_facility.logger import DarcaLogger
 from darca_yaml.yaml_utils import YamlUtils
 
 from darca_space_manager import config
@@ -128,7 +128,7 @@ class SpaceManager:
                 YamlUtils.save_yaml_file(
                     file_path=self._get_metadata_path(name),
                     data=metadata,
-                    validate=False,  # You can switch to True + schema if needed
+                    validate=False,  # You can switch True + schema if needed
                 )
             except Exception as e:
                 # Rollback directory creation

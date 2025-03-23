@@ -12,6 +12,7 @@ python = "^3.12"
 darca-log-facility = "^0.1.0"
 darca-exception = "^0.1.0"
 darca-file-utils = "^0.1.0"
+darca-yaml = "^0.1.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -43,3 +44,4 @@ sphinxcontrib-plantuml = "^0.30"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
