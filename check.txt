@@ -6,112 +6,297 @@ rootdir: /mnt/home/rokist/Projects/Python/darca-space-manager
 configfile: pyproject.toml
 plugins: cov-6.0.0, xdist-3.6.1
 created: 12/12 workers
-12 workers [18 items]
+12 workers [29 items]
 
 scheduling tests via LoadScheduling
 
+tests/test_space_file_manager.py::test_set_and_get_yml 
 tests/test_space_manager.py::test_list_and_count 
-tests/test_space_manager.py::test_get_metadata_success 
-tests/test_space_manager.py::test_duplicate_create 
-tests/test_space_manager.py::test_delete_nonexistent 
-tests/test_space_manager.py::test_create_space_exception 
-tests/test_space_manager.py::test_delete_space 
-tests/test_space_manager.py::test_list_spaces_exception 
-tests/test_space_manager.py::test_metadata_only_delete 
-tests/test_space_manager.py::test_create_space_metadata_none 
-tests/test_space_manager.py::test_create_space_metadata_empty 
+tests/test_space_file_manager.py::test_get_file_with_unicode_triggers_unicode_error_directly 
+tests/test_space_file_manager.py::test_set_file_with_unsupported_dict_extension 
 tests/test_space_manager.py::test_create_and_exist 
-tests/test_space_manager.py::test_get_metadata_failure 
-[gw2] [  5%] PASSED tests/test_space_manager.py::test_list_and_count 
-tests/test_space_manager.py::test_read_metadata_exception 
-[gw10] [ 11%] PASSED tests/test_space_manager.py::test_create_space_metadata_empty 
-[gw9] [ 16%] PASSED tests/test_space_manager.py::test_create_space_metadata_none 
-[gw0] [ 22%] PASSED tests/test_space_manager.py::test_create_and_exist 
-tests/test_space_manager.py::test_save_metadata_exception 
-[gw7] [ 27%] PASSED tests/test_space_manager.py::test_metadata_only_delete 
-[gw3] [ 33%] PASSED tests/test_space_manager.py::test_get_metadata_success 
-tests/test_space_manager.py::test_write_metadata_exception 
-[gw6] [ 38%] PASSED tests/test_space_manager.py::test_delete_nonexistent 
-[gw5] [ 44%] PASSED tests/test_space_manager.py::test_delete_space 
-tests/test_space_manager.py::test_delete_metadata_failure 
-[gw4] [ 50%] PASSED tests/test_space_manager.py::test_get_metadata_failure 
-tests/test_space_manager.py::test_delete_metadata_file_missing 
-[gw11] [ 55%] FAILED tests/test_space_manager.py::test_create_space_exception 
-[gw4] [ 61%] PASSED tests/test_space_manager.py::test_delete_metadata_file_missing 
-[gw8] [ 66%] PASSED tests/test_space_manager.py::test_list_spaces_exception 
-[gw1] [ 72%] PASSED tests/test_space_manager.py::test_duplicate_create 
+tests/test_space_file_manager.py::test_list_files_in_missing_space 
 tests/test_space_manager.py::test_get_metadata_path_fail 
-[gw2] [ 77%] PASSED tests/test_space_manager.py::test_read_metadata_exception 
-[gw1] [ 83%] PASSED tests/test_space_manager.py::test_get_metadata_path_fail 
-[gw0] [ 88%] PASSED tests/test_space_manager.py::test_save_metadata_exception 
-[gw3] [ 94%] PASSED tests/test_space_manager.py::test_write_metadata_exception 
-[gw5] [100%] PASSED tests/test_space_manager.py::test_delete_metadata_failure 
+tests/test_space_file_manager.py::test_set_and_get_text_file 
+tests/test_space_file_manager.py::test_file_exists 
+tests/test_space_manager.py::test_delete_nonexistent 
+tests/test_space_file_manager.py::test_get_file_non_ascii 
+tests/test_space_file_manager.py::test_list_files 
+[gw2] [  3%] PASSED tests/test_space_file_manager.py::test_file_exists 
+[gw3] [  6%] PASSED tests/test_space_file_manager.py::test_list_files 
+tests/test_space_file_manager.py::test_delete_file 
+[gw1] [ 10%] PASSED tests/test_space_file_manager.py::test_set_and_get_yml 
+tests/test_space_file_manager.py::test_set_and_get_json 
+tests/test_space_file_manager.py::test_get_file_outside_space_raises 
+[gw2] [ 13%] PASSED tests/test_space_file_manager.py::test_delete_file 
+[gw0] [ 17%] PASSED tests/test_space_file_manager.py::test_set_and_get_text_file 
+[gw1] [ 20%] PASSED tests/test_space_file_manager.py::test_set_and_get_json 
+tests/test_space_manager.py::test_delete_metadata_file_missing 
+tests/test_space_manager.py::test_delete_metadata_failure 
+tests/test_space_file_manager.py::test_set_and_get_yaml 
+[gw0] [ 24%] PASSED tests/test_space_file_manager.py::test_set_and_get_yaml 
+[gw2] [ 27%] PASSED tests/test_space_manager.py::test_delete_metadata_file_missing 
+tests/test_space_manager.py::test_delete_directory_failure 
+[gw9] [ 31%] PASSED tests/test_space_manager.py::test_list_and_count 
+[gw8] [ 34%] PASSED tests/test_space_manager.py::test_create_and_exist 
+[gw10] [ 37%] PASSED tests/test_space_manager.py::test_delete_nonexistent 
+tests/test_space_manager.py::test_list_spaces_exception 
+[gw3] [ 41%] PASSED tests/test_space_file_manager.py::test_get_file_outside_space_raises 
+tests/test_space_manager.py::test_duplicate_create 
+tests/test_space_manager.py::test_delete_space 
+[gw4] [ 44%] PASSED tests/test_space_file_manager.py::test_set_file_with_unsupported_dict_extension 
+tests/test_space_manager.py::test_create_directory_failure 
+tests/test_space_file_manager.py::test_set_file_with_invalid_type 
+[gw4] [ 48%] PASSED tests/test_space_file_manager.py::test_set_file_with_invalid_type 
+[gw5] [ 51%] PASSED tests/test_space_file_manager.py::test_get_file_non_ascii 
+[gw6] [ 55%] PASSED tests/test_space_file_manager.py::test_list_files_in_missing_space 
+[gw1] [ 58%] PASSED tests/test_space_manager.py::test_delete_metadata_failure 
+[gw10] [ 62%] PASSED tests/test_space_manager.py::test_list_spaces_exception 
+tests/test_space_file_manager.py::test_delete_non_existent_file 
+[gw11] [ 65%] PASSED tests/test_space_manager.py::test_get_metadata_path_fail 
+tests/test_space_file_manager.py::test_resolve_file_path_outside_space_is_blocked 
+tests/test_version.py::test_version_attributes_are_strings 
+[gw1] [ 68%] PASSED tests/test_version.py::test_version_attributes_are_strings 
+tests/test_space_manager.py::test_read_metadata_exception 
+[gw9] [ 72%] PASSED tests/test_space_manager.py::test_delete_space 
+[gw3] [ 75%] PASSED tests/test_space_manager.py::test_create_directory_failure 
+[gw6] [ 79%] PASSED tests/test_space_file_manager.py::test_resolve_file_path_outside_space_is_blocked 
+[gw11] [ 82%] PASSED tests/test_space_manager.py::test_read_metadata_exception 
+[gw2] [ 86%] PASSED tests/test_space_manager.py::test_delete_directory_failure 
+[gw5] [ 89%] PASSED tests/test_space_file_manager.py::test_delete_non_existent_file 
+[gw8] [ 93%] PASSED tests/test_space_manager.py::test_duplicate_create 
+[gw7] [ 96%] FAILED tests/test_space_file_manager.py::test_get_file_with_unicode_triggers_unicode_error_directly 
+tests/test_space_file_manager.py::test_set_file_dict_with_invalid_extension 
+[gw7] [100%] PASSED tests/test_space_file_manager.py::test_set_file_dict_with_invalid_extension 
 
 =================================== FAILURES ===================================
-_________________________ test_create_space_exception __________________________
-[gw11] linux -- Python 3.12.3 /tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/bin/python
+__________ test_get_file_with_unicode_triggers_unicode_error_directly __________
+[gw7] linux -- Python 3.12.3 /tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/bin/python
 
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ef56ed526f0>
-tmp_path = PosixPath('/tmp/pytest-of-rokist/pytest-47/popen-gw11/test_create_space_exception0')
+file_path = '/tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt'
+mode = 'r', encoding = 'ascii'
 
-    def test_create_space_exception(monkeypatch, tmp_path):
-        """Simulate YamlUtils.save_yaml_file failure, rollback fails"""
-        base_dir = tmp_path / "darca_space"
-        monkeypatch.setattr(
-            "darca_space_manager.config.DIRECTORIES",
-            {
-                "SPACE_DIR": str(base_dir / "spaces"),
-                "METADATA_DIR": str(base_dir / "metadata"),
-                "LOG_DIR": str(base_dir / "logs"),
-            },
-        )
-        space_manager = SpaceManager()
-        name = "failing_space"
+    @staticmethod
+    def read_file(
+        file_path: str, mode: str = "r", encoding: str = "utf-8"
+    ) -> str:
+        """
+        Read and return the content of the specified file.
     
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.DirectoryUtils.create_directory",
-            lambda *_: True,
-        )
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.YamlUtils.save_yaml_file",
-            lambda *_: (_ for _ in ()).throw(Exception("force metadata fail")),
-        )
-        monkeypatch.setattr(
-            "darca_space_manager.space_manager.DirectoryUtils.remove_directory",
-            lambda *_: (_ for _ in ()).throw(Exception("rollback failed")),
-        )
+        Args:
+            file_path (str): The path to the file.
+            mode (str, optional): The file opening mode (default is "r").
+            encoding (str, optional): The file encoding (default is "utf-8").
     
-        with pytest.raises(SpaceManagerException, match="Failed to store metadata"):
->           space_manager.create_space(name, metadata={"some": "data"})
+        Returns:
+            str: The content of the file.
+    
+        Raises:
+            FileUtilsException: If the file doesn't exist or cannot be read.
+        """
+        if not FileUtils.file_exist(file_path):
+            raise FileUtilsException(
+                message=f"File not found: {file_path}",
+                error_code="FILE_NOT_FOUND",
+                metadata={"file_path": file_path},
+            )
+    
+        try:
+            with open(file_path, mode, encoding=encoding) as f:
+>               content = f.read()
 
-tests/test_space_manager.py:123: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-src/darca_space_manager/space_manager.py:135: in create_space
-    DirectoryUtils.remove_directory(self._get_space_path(name))
-tests/test_space_manager.py:119: in <lambda>
-    lambda *_: (_ for _ in ()).throw(Exception("rollback failed")),
+/tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/lib/python3.12/site-packages/darca_file_utils/file_utils.py:128: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-.0 = <tuple_iterator object at 0x7ef56ed528f0>
+self = <encodings.ascii.IncrementalDecoder object at 0x737cdedbd970>
+input = b'R\xc3\xa9sum\xc3\xa9', final = True
 
->       lambda *_: (_ for _ in ()).throw(Exception("rollback failed")),
-    )
-E   Exception: rollback failed
+    def decode(self, input, final=False):
+>       return codecs.ascii_decode(input, self.errors)[0]
+E       UnicodeDecodeError: 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)
 
-tests/test_space_manager.py:119: Exception
+/usr/lib/python3.12/encodings/ascii.py:26: UnicodeDecodeError
+
+During handling of the above exception, another exception occurred:
+
+self = <darca_space_manager.space_file_manager.SpaceFileManager object at 0x737cdf1f5ee0>
+space_name = 'testspace_71a85f2970dc4616a308a1dcca3d8257'
+relative_path = 'file_269a1fcf79674b0a865b4c0641f91624.txt'
+
+    def get_file(self, space_name: str, relative_path: str) -> str:
+        """
+        Get the ASCII content of a file. Returns raw text even for YAML/JSON files.
+    
+        Args:
+            space_name (str): Name of the space.
+            relative_path (str): Path relative to the space root.
+    
+        Returns:
+            str: The file content as ASCII text.
+    
+        Raises:
+            SpaceFileManagerException
+        """
+        file_path = self._resolve_file_path(space_name, relative_path)
+        logger.debug(f"Reading file '{relative_path}' in space '{space_name}' as text.")
+    
+        try:
+>           return FileUtils.read_file(file_path, mode="r", encoding="ascii")
+
+src/darca_space_manager/space_file_manager.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+file_path = '/tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt'
+mode = 'r', encoding = 'ascii'
+
+    @staticmethod
+    def read_file(
+        file_path: str, mode: str = "r", encoding: str = "utf-8"
+    ) -> str:
+        """
+        Read and return the content of the specified file.
+    
+        Args:
+            file_path (str): The path to the file.
+            mode (str, optional): The file opening mode (default is "r").
+            encoding (str, optional): The file encoding (default is "utf-8").
+    
+        Returns:
+            str: The content of the file.
+    
+        Raises:
+            FileUtilsException: If the file doesn't exist or cannot be read.
+        """
+        if not FileUtils.file_exist(file_path):
+            raise FileUtilsException(
+                message=f"File not found: {file_path}",
+                error_code="FILE_NOT_FOUND",
+                metadata={"file_path": file_path},
+            )
+    
+        try:
+            with open(file_path, mode, encoding=encoding) as f:
+                content = f.read()
+            logger.debug(f"Read content from file: {file_path}")
+            return content
+        except Exception as e:
+>           raise FileUtilsException(
+                message=f"Failed to read file: {file_path}",
+                error_code="FILE_READ_ERROR",
+                metadata={"file_path": file_path, "mode": mode},
+                cause=e,
+            )
+E           darca_file_utils.file_utils.FileUtilsException: [FILE_READ_ERROR] Failed to read file: /tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt, caused by 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)
+
+/tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/lib/python3.12/site-packages/darca_file_utils/file_utils.py:132: FileUtilsException
+
+During handling of the above exception, another exception occurred:
+
+space_file_manager = (<darca_space_manager.space_file_manager.SpaceFileManager object at 0x737cdf1f5ee0>, 'testspace_71a85f2970dc4616a308a1dcca3d8257')
+
+    def test_get_file_with_unicode_triggers_unicode_error_directly(space_file_manager):
+        manager, space = space_file_manager
+        filename = unique_filename(".txt")
+        path = os.path.join(manager.space_manager._get_space_path(space), filename)
+    
+        # Write non-ascii content to trigger decode error
+        with open(path, "wb") as f:
+            f.write("Résumé".encode("utf-8"))
+    
+        with pytest.raises(SpaceFileManagerException, match="NON_ASCII_CONTENT"):
+>           manager.get_file(space, filename)
+
+tests/test_space_file_manager.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <darca_space_manager.space_file_manager.SpaceFileManager object at 0x737cdf1f5ee0>
+space_name = 'testspace_71a85f2970dc4616a308a1dcca3d8257'
+relative_path = 'file_269a1fcf79674b0a865b4c0641f91624.txt'
+
+    def get_file(self, space_name: str, relative_path: str) -> str:
+        """
+        Get the ASCII content of a file. Returns raw text even for YAML/JSON files.
+    
+        Args:
+            space_name (str): Name of the space.
+            relative_path (str): Path relative to the space root.
+    
+        Returns:
+            str: The file content as ASCII text.
+    
+        Raises:
+            SpaceFileManagerException
+        """
+        file_path = self._resolve_file_path(space_name, relative_path)
+        logger.debug(f"Reading file '{relative_path}' in space '{space_name}' as text.")
+    
+        try:
+            return FileUtils.read_file(file_path, mode="r", encoding="ascii")
+        except UnicodeDecodeError as e:
+            raise SpaceFileManagerException(
+                message="File contains non-ASCII characters.",
+                error_code="NON_ASCII_CONTENT",
+                metadata={"file": relative_path, "space": space_name},
+                cause=e,
+            )
+        except Exception as e:
+>           raise SpaceFileManagerException(
+                message=f"Failed to read file '{relative_path}' in space '{space_name}'.",
+                error_code="FILE_READ_FAILED",
+                metadata={"space": space_name, "file": relative_path},
+                cause=e,
+            )
+E           darca_space_manager.space_file_manager.SpaceFileManagerException: [FILE_READ_FAILED] Failed to read file 'file_269a1fcf79674b0a865b4c0641f91624.txt' in space 'testspace_71a85f2970dc4616a308a1dcca3d8257'., caused by [FILE_READ_ERROR] Failed to read file: /tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt, caused by 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)
+
+src/darca_space_manager/space_file_manager.py:95: SpaceFileManagerException
+
+During handling of the above exception, another exception occurred:
+
+space_file_manager = (<darca_space_manager.space_file_manager.SpaceFileManager object at 0x737cdf1f5ee0>, 'testspace_71a85f2970dc4616a308a1dcca3d8257')
+
+    def test_get_file_with_unicode_triggers_unicode_error_directly(space_file_manager):
+        manager, space = space_file_manager
+        filename = unique_filename(".txt")
+        path = os.path.join(manager.space_manager._get_space_path(space), filename)
+    
+        # Write non-ascii content to trigger decode error
+        with open(path, "wb") as f:
+            f.write("Résumé".encode("utf-8"))
+    
+>       with pytest.raises(SpaceFileManagerException, match="NON_ASCII_CONTENT"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'NON_ASCII_CONTENT'
+E        Input: "[FILE_READ_FAILED] Failed to read file 'file_269a1fcf79674b0a865b4c0641f91624.txt' in space 'testspace_71a85f2970dc4616a308a1dcca3d8257'., caused by [FILE_READ_ERROR] Failed to read file: /tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt, caused by 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)"
+
+tests/test_space_file_manager.py:126: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[31m2025-03-23 22:32:22,409 - darca-exception - ERROR - {"error_code": "FILE_READ_ERROR", "message": "Failed to read file: /tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt", "metadata": {"file_path": "/tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt", "mode": "r"}, "cause": "'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)", "stack_trace": "Traceback (most recent call last):\n  File \"/tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/lib/python3.12/site-packages/darca_file_utils/file_utils.py\", line 128, in read_file\n    content = f.read()\n              ^^^^^^^^\n  File \"/usr/lib/python3.12/encodings/ascii.py\", line 26, in decode\n    return codecs.ascii_decode(input, self.errors)[0]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nUnicodeDecodeError: 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)\n"}[0m
+[31m2025-03-23 22:32:22,436 - darca-exception - ERROR - {"error_code": "FILE_READ_FAILED", "message": "Failed to read file 'file_269a1fcf79674b0a865b4c0641f91624.txt' in space 'testspace_71a85f2970dc4616a308a1dcca3d8257'.", "metadata": {"space": "testspace_71a85f2970dc4616a308a1dcca3d8257", "file": "file_269a1fcf79674b0a865b4c0641f91624.txt"}, "cause": "[FILE_READ_ERROR] Failed to read file: /tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt, caused by 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)", "stack_trace": "Traceback (most recent call last):\n  File \"/tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/lib/python3.12/site-packages/darca_file_utils/file_utils.py\", line 128, in read_file\n    content = f.read()\n              ^^^^^^^^\n  File \"/usr/lib/python3.12/encodings/ascii.py\", line 26, in decode\n    return codecs.ascii_decode(input, self.errors)[0]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nUnicodeDecodeError: 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/mnt/home/rokist/Projects/Python/darca-space-manager/src/darca_space_manager/space_file_manager.py\", line 86, in get_file\n    return FileUtils.read_file(file_path, mode=\"r\", encoding=\"ascii\")\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/darca-space-venv/darca-space-manager-1MU3DrmL-py3.12/lib/python3.12/site-packages/darca_file_utils/file_utils.py\", line 132, in read_file\n    raise FileUtilsException(\ndarca_file_utils.file_utils.FileUtilsException: [FILE_READ_ERROR] Failed to read file: /tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt, caused by 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)\n"}[0m
+=============================== warnings summary ===============================
+tests/test_space_manager.py::test_list_and_count
+tests/test_space_manager.py::test_create_and_exist
+tests/test_space_manager.py::test_delete_space
+tests/test_space_manager.py::test_duplicate_create
+  /mnt/home/rokist/Projects/Python/darca-space-manager/src/darca_space_manager/space_manager.py:108: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 
 ---------- coverage: platform linux, python 3.12.3-final-0 -----------
-Name                                       Stmts   Miss  Cover
---------------------------------------------------------------
-src/darca_space_manager/__init__.py            0      0   100%
-src/darca_space_manager/__version__.py         3      3     0%
-src/darca_space_manager/config.py              6      0   100%
-src/darca_space_manager/space_manager.py      74      4    95%
---------------------------------------------------------------
-TOTAL                                         83      7    92%
+Name                                            Stmts   Miss  Cover
+-------------------------------------------------------------------
+src/darca_space_manager/__init__.py                 0      0   100%
+src/darca_space_manager/__version__.py              3      0   100%
+src/darca_space_manager/config.py                   6      0   100%
+src/darca_space_manager/space_file_manager.py      69      4    94%
+src/darca_space_manager/space_manager.py           79      4    95%
+-------------------------------------------------------------------
+TOTAL                                             157      8    95%
 Coverage HTML written to dir htmlcov
 Coverage JSON written to file coverage.json
 
 =========================== short test summary info ============================
-FAILED tests/test_space_manager.py::test_create_space_exception - Exception: rollback failed
-========================= 1 failed, 17 passed in 1.27s =========================
+FAILED tests/test_space_file_manager.py::test_get_file_with_unicode_triggers_unicode_error_directly - AssertionError: Regex pattern did not match.
+ Regex: 'NON_ASCII_CONTENT'
+ Input: "[FILE_READ_FAILED] Failed to read file 'file_269a1fcf79674b0a865b4c0641f91624.txt' in space 'testspace_71a85f2970dc4616a308a1dcca3d8257'., caused by [FILE_READ_ERROR] Failed to read file: /tmp/pytest-of-rokist/pytest-66/popen-gw7/test_get_file_with_unicode_tri0/darca_space/spaces/testspace_71a85f2970dc4616a308a1dcca3d8257/file_269a1fcf79674b0a865b4c0641f91624.txt, caused by 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)"
+=================== 1 failed, 28 passed, 4 warnings in 1.28s ===================

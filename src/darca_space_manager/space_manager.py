@@ -7,8 +7,9 @@ Supports space creation, deletion, listing, and metadata tracking.
 This implementation uses the local filesystem and YAML metadata files.
 """
 
+import datetime
 import os
-from typing import List, Optional
+from typing import List
 
 from darca_exception.exception import DarcaException
 from darca_file_utils.directory_utils import DirectoryUtils
@@ -91,13 +92,31 @@ class SpaceManager:
         logger.debug(f"Total spaces allocated: {count}")
         return count
 
-    def create_space(self, name: str, metadata: Optional[dict] = None) -> bool:
+    def _generate_metadata(self, name: str) -> dict:
         """
-        Allocate a new space with optional metadata.
+        Generate metadata for a new space.
 
         Args:
             name (str): Name of the space.
-            metadata (dict, optional): Optional metadata to store.
+
+        Returns:
+            dict: Metadata dictionary.
+        """
+        metadata = {
+            "type": "local",
+            "path": self._get_space_path(name),
+            "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+            "version": "1.0",
+        }
+        logger.debug(f"Generated metadata for space '{name}': {metadata}")
+        return metadata
+
+    def create_space(self, name: str) -> bool:
+        """
+        Allocate a new space and store internal metadata.
+
+        Args:
+            name (str): Name of the space.
 
         Returns:
             bool: True if space created successfully.
@@ -105,7 +124,8 @@ class SpaceManager:
         Raises:
             SpaceManagerException: If space already exists or creation fails.
         """
-        logger.debug(f"Creating space '{name}' with metadata: {metadata}")
+        logger.debug(f"Creating space '{name}'.")
+
         if self.space_exists(name):
             raise SpaceManagerException(
                 message=f"Space '{name}' already exists.",
@@ -123,22 +143,23 @@ class SpaceManager:
                 cause=e,
             )
 
-        if metadata:
-            try:
-                YamlUtils.save_yaml_file(
-                    file_path=self._get_metadata_path(name),
-                    data=metadata,
-                    validate=False,  # You can switch True + schema if needed
-                )
-            except Exception as e:
-                # Rollback directory creation
-                DirectoryUtils.remove_directory(self._get_space_path(name))
-                raise SpaceManagerException(
-                    message=f"Failed to store metadata for space '{name}'.",
-                    error_code="METADATA_WRITE_FAILED",
-                    metadata={"space": name},
-                    cause=e,
-                )
+        metadata = self._generate_metadata(name)
+
+        try:
+            YamlUtils.save_yaml_file(
+                file_path=self._get_metadata_path(name),
+                data=metadata,
+                validate=False,
+            )
+        except Exception as e:
+            # Rollback directory creation
+            DirectoryUtils.remove_directory(self._get_space_path(name))
+            raise SpaceManagerException(
+                message=f"Failed to store metadata for space '{name}'.",
+                error_code="METADATA_WRITE_FAILED",
+                metadata={"space": name},
+                cause=e,
+            )
 
         logger.info(f"Space '{name}' successfully created.")
         return True
@@ -157,6 +178,7 @@ class SpaceManager:
             SpaceManagerException: If metadata cannot be loaded.
         """
         logger.debug(f"Retrieving metadata for space '{name}'.")
+
         if not self.space_exists(name):
             raise SpaceManagerException(
                 message=f"Space '{name}' does not exist.",

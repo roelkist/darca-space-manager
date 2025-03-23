@@ -35,6 +35,15 @@ jobs:
       - name: Run CI Pipeline
         run: make ci
 
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          flags: python-${{ matrix.python-version }}
+          name: codecov-${{ matrix.python-version }}
+          fail_ci_if_error: true
+
       - name: Upload Coverage Report as Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -47,11 +56,9 @@ jobs:
           name: sphinx-docs-${{ matrix.python-version }}
           path: docs/build/html/
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
-          flags: python-${{ matrix.python-version }}
-          name: codecov-${{ matrix.python-version }}
-          fail_ci_if_error: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build/html
+

@@ -108,7 +108,7 @@ docs:
 	@echo "✅ Documentation built!"
 
 # === Check Everything ===
-check: install format precommit test
+check: install format precommit test docs
 	@echo "✅ All checks passed!"
 
 # === CI Workflow ===
