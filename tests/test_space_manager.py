@@ -1,10 +1,7 @@
-import os
-
 import pytest
 from darca_file_utils.file_utils import FileUtils
 
 from darca_space_manager.space_manager import (
-    SpaceManager,
     SpaceManagerException,
 )
 
@@ -93,11 +90,15 @@ def test_create_space_exception(monkeypatch, space_manager, unique_space_name):
         "darca_space_manager.space_manager.YamlUtils.save_yaml_file",
         lambda *_args, **_kwargs: True,
     )
-    with pytest.raises(SpaceManagerException, match="Failed to create space directory"):
+    with pytest.raises(
+        SpaceManagerException, match="Failed to create space directory"
+    ):
         space_manager.create_space(unique_space_name)
 
 
-def test_save_metadata_exception(monkeypatch, space_manager, unique_space_name):
+def test_save_metadata_exception(
+    monkeypatch, space_manager, unique_space_name
+):
     """Simulate YamlUtils.save_yaml_file failure"""
     monkeypatch.setattr(
         "darca_space_manager.space_manager.YamlUtils.save_yaml_file",
@@ -112,16 +113,23 @@ def test_save_metadata_exception(monkeypatch, space_manager, unique_space_name):
 
 
 def test_get_metadata_path_fail(monkeypatch, space_manager):
-    """Simulate failure to build metadata path by mocking metadata_dir to an invalid object."""
+    """Simulate failure to build metadata path by mocking metadata_dir to an
+    invalid object."""
+
     class BadPath:
-        def __str__(self): raise Exception("metadata_dir is broken")
+        def __str__(self):
+            raise Exception("metadata_dir is broken")
 
     monkeypatch.setattr(space_manager, "metadata_dir", BadPath())
-    with pytest.raises(SpaceManagerException, match="Failed to determine metadata path"):
+    with pytest.raises(
+        SpaceManagerException, match="Failed to determine metadata path"
+    ):
         space_manager.get_space_metadata("whatever")
 
 
-def test_read_metadata_exception(monkeypatch, space_manager, unique_space_name):
+def test_read_metadata_exception(
+    monkeypatch, space_manager, unique_space_name
+):
     """Simulate FileUtils.read_file failure"""
     monkeypatch.setattr(
         "darca_space_manager.space_manager.FileUtils.read_file",
@@ -144,7 +152,9 @@ def test_read_metadata_exception(monkeypatch, space_manager, unique_space_name):
         space_manager.get_space_metadata(unique_space_name)
 
 
-def test_write_metadata_exception(monkeypatch, space_manager, unique_space_name):
+def test_write_metadata_exception(
+    monkeypatch, space_manager, unique_space_name
+):
     """Simulate FileUtils.write_file failure during metadata write"""
     monkeypatch.setattr(
         "darca_space_manager.space_manager.FileUtils.write_file",
@@ -154,5 +164,7 @@ def test_write_metadata_exception(monkeypatch, space_manager, unique_space_name)
         "darca_space_manager.space_manager.DirectoryUtils.directory_exist",
         lambda *_: True,
     )
-    with pytest.raises(SpaceManagerException, match="Failed to write metadata"):
+    with pytest.raises(
+        SpaceManagerException, match="Failed to write metadata"
+    ):
         space_manager.create_space(unique_space_name, metadata={"bad": True})

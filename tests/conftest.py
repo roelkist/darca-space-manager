@@ -1,6 +1,3 @@
-import shutil
-from pathlib import Path
-
 import pytest
 
 from darca_space_manager.space_manager import SpaceManager
