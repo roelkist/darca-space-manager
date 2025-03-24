@@ -38,11 +38,14 @@ def unique_space_name(tmp_path_factory):
 
 
 @pytest.fixture(scope="function")
-def space_file_manager(space_manager):
+def space_file_manager(temp_config):
     """
     Provides a SpaceFileManager instance and a uniquely-named test space.
     Ensures isolation for parallel test execution.
     """
     unique_space = f"testspace_{uuid.uuid4().hex}"
-    os.makedirs(space_manager._get_space_path(unique_space), exist_ok=True)
-    return SpaceFileManager(space_manager=space_manager), unique_space
+    manager = SpaceFileManager()
+    os.makedirs(
+        manager._space_manager._get_space_path(unique_space), exist_ok=True
+    )
+    return manager, unique_space

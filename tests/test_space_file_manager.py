@@ -7,7 +7,6 @@ from darca_space_manager.space_file_manager import (
     SpaceFileManager,
     SpaceFileManagerException,
 )
-from darca_space_manager.space_manager import SpaceManager
 
 
 def unique_filename(ext: str) -> str:
@@ -107,7 +106,7 @@ def test_get_file_non_ascii(space_file_manager):
     manager, space = space_file_manager
     filename = unique_filename(".txt")
     file_path = os.path.join(
-        manager.space_manager._get_space_path(space), filename
+        manager._space_manager._get_space_path(space), filename
     )
     with open(file_path, "wb") as f:
         f.write("Café au lait".encode("utf-8"))
@@ -122,10 +121,11 @@ def test_delete_non_existent_file(space_file_manager):
         manager.delete_file(space, filename)
 
 
-def test_list_files_in_missing_space(space_manager):
-    sfm = SpaceFileManager(space_manager)
+def test_list_files_in_missing_space():
+    sfm = SpaceFileManager()
+    missing_space = "missing_" + uuid4().hex
     with pytest.raises(SpaceFileManagerException, match="LIST_FILES_FAILED"):
-        sfm.list_files("missing_" + uuid4().hex)
+        sfm.list_files(missing_space)
 
 
 def test_set_file_json_dumps_failure_triggers_generic_exception(
@@ -144,7 +144,7 @@ def test_set_file_json_dumps_failure_triggers_generic_exception(
 
 
 def test_resolve_file_path_raises_on_nonexistent_space():
-    manager = SpaceFileManager(space_manager=SpaceManager())
+    manager = SpaceFileManager()
     nonexistent_space = "does_not_exist_" + uuid4().hex
 
     with pytest.raises(SpaceFileManagerException) as exc:
