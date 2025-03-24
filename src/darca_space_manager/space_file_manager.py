@@ -16,9 +16,7 @@ from darca_file_utils.file_utils import FileUtils
 from darca_log_facility.logger import DarcaLogger
 from darca_yaml.yaml_utils import YamlUtils
 
-from darca_space_manager.space_manager import (
-    SpaceManager,
-)
+from darca_space_manager.space_manager import SpaceManager
 
 # Initialize logger
 logger = DarcaLogger(name="space_file_manager").get_logger()
@@ -41,11 +39,11 @@ class SpaceFileManager:
     Manages file-level operations within a logical space.
     """
 
-    def __init__(self, space_manager: SpaceManager):
-        self.space_manager = space_manager
+    def __init__(self):
+        self._space_manager = SpaceManager()
 
     def _resolve_file_path(self, space_name: str, relative_path: str) -> str:
-        if not self.space_manager.space_exists(space_name):
+        if not self._space_manager.space_exists(space_name):
             raise SpaceFileManagerException(
                 message=f"Space '{space_name}' does not exist.",
                 error_code="SPACE_NOT_FOUND",
@@ -53,10 +51,10 @@ class SpaceFileManager:
             )
         full_path = os.path.normpath(
             os.path.join(
-                self.space_manager._get_space_path(space_name), relative_path
+                self._space_manager._get_space_path(space_name), relative_path
             )
         )
-        base_path = self.space_manager._get_space_path(space_name)
+        base_path = self._space_manager._get_space_path(space_name)
         if not full_path.startswith(base_path):
             raise SpaceFileManagerException(
                 message=(
@@ -224,7 +222,7 @@ class SpaceFileManager:
         )
 
         try:
-            space_root = self.space_manager._get_space_path(space_name)
+            space_root = self._space_manager._get_space_path(space_name)
             return DirectoryUtils.list_directory(
                 space_root, recursive=recursive
             )
