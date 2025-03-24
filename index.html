@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to darca-space-manager’s documentation! &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.2.0 documentation</title>
+  <title>Welcome to darca-space-manager’s documentation! &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="_static/documentation_options.js?v=e259d695"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -80,69 +80,96 @@
 </section>
 <section id="darca-space-manager">
 <h1>darca-space-manager<a class="headerlink" href="#darca-space-manager" title="Link to this heading"></a></h1>
-<p>A local storage abstraction layer for managing logical spaces using the filesystem and YAML metadata.</p>
+<p>A lightweight, fully-tested Python library to manage logical file-based spaces.
+Ideal for sandboxing, test environments, or dynamic storage orchestration.</p>
 <p><a class="reference external" href="https://github.com/roelkist/darca-space-manager/actions"><img alt="Build Status" src="https://github.com/roelkist/darca-space-manager/actions/workflows/ci.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/roelkist/darca-space-manager/actions"><img alt="Deploy Status" src="https://github.com/roelkist/darca-space-manager/actions/workflows/cd.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/roelkist/darca-space-manager"><img alt="Codecov" src="https://codecov.io/gh/roelkist/darca-space-manager/branch/main/graph/badge.svg" /></a> <a class="reference external" href="https://github.com/psf/black"><img alt="Black code style" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a> <a class="reference external" href="https://opensource.org/licenses/MIT"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a> <a class="reference external" href="https://pypi.org/project/darca-space-manager/"><img alt="PyPi" src="https://img.shields.io/pypi/v/darca-space-manager" /></a> <a class="reference external" href="https://roelkist.github.io/darca-space-manager/"><img alt="GitHub Pages" src="https://img.shields.io/github/deployments/roelkist/darca-space-manager/github-pages" /></a></p>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
-<p><strong>darca-space-manager</strong> provides a clean interface to create, delete, and manage isolated storage “spaces” on disk, each optionally enriched with YAML-based metadata. It is designed for modular integration with other DARCA services and utilities.</p>
-<p>Maintained by <a class="reference external" href="https://github.com/roelkist">Roel Kist</a></p>
+<h2>🚀 Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p><strong>darca-space-manager</strong> provides a simple abstraction over local file storage by organizing content in logical “spaces”.
+Each space has its own metadata and supports file-level operations such as reading, writing, deleting, and listing — including support for structured content like YAML and JSON.</p>
 </section>
 <section id="features">
-<h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
+<h2>✨ Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>✅ Create and delete isolated named spaces</p></li>
-<li><p>🗃️ Store and retrieve structured YAML metadata</p></li>
-<li><p>🔍 List and count all active spaces</p></li>
-<li><p>📁 Filesystem-based, no database required</p></li>
-<li><p>🧪 100% test coverage and automated CI</p></li>
+<li><p>Space creation, deletion, existence checks, and metadata tracking</p></li>
+<li><p>File read/write/delete operations within a given space</p></li>
+<li><p>Automatic handling of <cite>.yaml</cite>, <cite>.yml</cite>, and <cite>.json</cite> for dictionaries</p></li>
+<li><p>Strict ASCII validation when reading text</p></li>
+<li><p>Custom exceptions for robust error tracing (<cite>SpaceFileManagerException</cite>, <cite>SpaceManagerException</cite>)</p></li>
+<li><p>Parallel-safe test fixtures (100% test coverage)</p></li>
+<li><p>CI/CD pipelines, auto-doc generation, and live documentation via GitHub Pages</p></li>
 </ul>
 </section>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/roelkist/darca-space-manager.git
-<span class="nb">cd</span><span class="w"> </span>darca-space-manager
-make<span class="w"> </span>install
+<h2>📦 Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>darca-space-manager
+</pre></div>
+</div>
+<p>Or using Poetry:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>add<span class="w"> </span>darca-space-manager
 </pre></div>
 </div>
 </section>
-<section id="quick-start">
-<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager.space_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpaceManager</span>
+<section id="usage">
+<h2>🔧 Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpaceManager</span><span class="p">,</span> <span class="n">SpaceFileManager</span>
 
-<span class="n">manager</span> <span class="o">=</span> <span class="n">SpaceManager</span><span class="p">()</span>
-<span class="n">manager</span><span class="o">.</span><span class="n">create_space</span><span class="p">(</span><span class="s2">&quot;demo&quot;</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;purpose&quot;</span><span class="p">:</span> <span class="s2">&quot;testing&quot;</span><span class="p">})</span>
+<span class="n">sm</span> <span class="o">=</span> <span class="n">SpaceManager</span><span class="p">()</span>
+<span class="n">sfm</span> <span class="o">=</span> <span class="n">SpaceFileManager</span><span class="p">()</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">space_exists</span><span class="p">(</span><span class="s2">&quot;demo&quot;</span><span class="p">))</span>           <span class="c1"># True</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">get_space_metadata</span><span class="p">(</span><span class="s2">&quot;demo&quot;</span><span class="p">))</span>     <span class="c1"># {&#39;purpose&#39;: &#39;testing&#39;}</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">list_spaces</span><span class="p">())</span>                  <span class="c1"># [&#39;demo&#39;]</span>
-<span class="n">manager</span><span class="o">.</span><span class="n">delete_space</span><span class="p">(</span><span class="s2">&quot;demo&quot;</span><span class="p">)</span>
+<span class="n">sm</span><span class="o">.</span><span class="n">create_space</span><span class="p">(</span><span class="s2">&quot;demo&quot;</span><span class="p">)</span>
+<span class="n">sfm</span><span class="o">.</span><span class="n">set_file</span><span class="p">(</span><span class="s2">&quot;demo&quot;</span><span class="p">,</span> <span class="s2">&quot;example.yaml&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;foo&quot;</span><span class="p">:</span> <span class="s2">&quot;bar&quot;</span><span class="p">})</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sfm</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;demo&quot;</span><span class="p">,</span> <span class="s2">&quot;example.yaml&quot;</span><span class="p">))</span>  <span class="c1"># raw text</span>
+<span class="n">sm</span><span class="o">.</span><span class="n">delete_space</span><span class="p">(</span><span class="s2">&quot;demo&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
-<section id="development">
-<h2>Development<a class="headerlink" href="#development" title="Link to this heading"></a></h2>
-<p>Run the full test suite and all linters:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span><span class="nb">test</span><span class="w">     </span><span class="c1"># Run tests with coverage</span>
-make<span class="w"> </span>check<span class="w">    </span><span class="c1"># Run all quality tools (lint, type check, etc.)</span>
-make<span class="w"> </span>format<span class="w">   </span><span class="c1"># Auto-format code with Black + Ruff</span>
+<section id="documentation">
+<h2>📚 Documentation<a class="headerlink" href="#documentation" title="Link to this heading"></a></h2>
+<p>Visit the full documentation:</p>
+<p>👉 <a class="reference external" href="https://roelkist.github.io/darca-space-manager/">https://roelkist.github.io/darca-space-manager/</a></p>
+<p>To build locally:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>docs
 </pre></div>
 </div>
 </section>
 <section id="project-layout">
-<h2>Project Layout<a class="headerlink" href="#project-layout" title="Link to this heading"></a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>src/darca_space_manager/
-├── space_manager.py       # Main logic
-├── config.py              # Directory configuration
-└── __version__.py         # Version info
-
-tests/                     # Pytest suite
-Makefile                   # Developer workflow commands
+<h2>📂 Project Layout<a class="headerlink" href="#project-layout" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>darca_space_manager/
+├── config.py
+├── space_file_manager.py
+├── space_manager.py
+└── __version__.py
 </pre></div>
 </div>
 </section>
+<section id="testing">
+<h2>🧪 Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h2>
+<p>Run all tests using:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span><span class="nb">test</span>
+</pre></div>
+</div>
+<p>Coverage and reports:</p>
+<ul class="simple">
+<li><p>Generates <cite>coverage.svg</cite> badge</p></li>
+<li><p>Stores HTML output in <cite>htmlcov/</cite></p></li>
+<li><p>Fully parallel test support with <cite>xdist</cite></p></li>
+</ul>
+</section>
+<section id="contributing">
+<h2>🤝 Contributing<a class="headerlink" href="#contributing" title="Link to this heading"></a></h2>
+<p>We welcome all contributions!</p>
+<ul class="simple">
+<li><p>Create a new <strong>branch</strong> from <cite>main</cite></p></li>
+<li><p>Use PRs to submit changes</p></li>
+<li><p>You can also open feature requests or issues using our GitHub templates</p></li>
+</ul>
+<p>See <cite>CONTRIBUTING.rst</cite> for detailed guidelines.</p>
+</section>
 <section id="license">
-<h2>License<a class="headerlink" href="#license" title="Link to this heading"></a></h2>
-<p>This project is licensed under the MIT License. See <code class="docutils literal notranslate"><span class="pre">LICENSE</span></code> for full terms.</p>
+<h2>📄 License<a class="headerlink" href="#license" title="Link to this heading"></a></h2>
+<p>This project is licensed under the MIT License.
+See <a class="reference external" href="https://github.com/roelkist/darca-space-manager/blob/main/LICENSE">LICENSE</a> for details.</p>
 </section>
 <section id="getting-started">
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
@@ -200,8 +227,8 @@ make<span class="w"> </span>clean<span class="w">     </span><span class="c1"># 
 </pre></div>
 </div>
 </section>
-<section id="testing">
-<h2>Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h2>
+<section id="id3">
+<h2>Testing<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
 <p>Tests are located in the <code class="docutils literal notranslate"><span class="pre">tests/</span></code> directory and use <cite>pytest</cite>.</p>
 <p>All code contributions must be accompanied by appropriate tests and aim to maintain <strong>100% coverage</strong>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span><span class="nb">test</span>
@@ -236,8 +263,8 @@ make<span class="w"> </span>format<span class="w">    </span><span class="c1"># 
 <p><strong>Roel Kist</strong>
 GitHub: <a class="reference external" href="https://github.com/roelkist">https://github.com/roelkist</a></p>
 </section>
-<section id="id3">
-<h2>License<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="id4">
+<h2>License<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <p>All contributions are licensed under the MIT License.</p>
 </section>
 </section>
