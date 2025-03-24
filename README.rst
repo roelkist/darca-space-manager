@@ -86,8 +86,8 @@ This project is licensed under the MIT License. See ``LICENSE`` for full terms.
    :alt: Black code style
 .. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg
    :target: https://opensource.org/licenses/MIT
-.. |PyPi Version| image:: https://img.shields.io/pypi/v/darca-yaml
-   :target: https://pypi.org/project/darca-yaml/
+.. |PyPi Version| image:: https://img.shields.io/pypi/v/darca-space-manager
+   :target: https://pypi.org/project/darca-space-manager/
    :alt: PyPi
 .. |Docs| image:: https://img.shields.io/github/deployments/roelkist/darca-space-manager/github-pages
     :target: https://roelkist.github.io/darca-space-manager/
