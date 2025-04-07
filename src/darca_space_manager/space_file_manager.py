@@ -70,38 +70,52 @@ class SpaceFileManager:
         file_path = self._resolve_file_path(space_name, relative_path)
         return FileUtils.file_exist(file_path)
 
-    def get_file(self, space_name: str, relative_path: str) -> str:
+    def get_file(self, space_name: str, relative_path: str, load: bool = False) -> Union[str, dict]:
         """
-        Get the ASCII content of a file. Returns raw text even
-        for YAML/JSON files.
+        Get the content of a file. Returns raw text or parsed content based on the load flag.
 
         Args:
             space_name (str): Name of the space.
             relative_path (str): Path relative to the space root.
+            load (bool): Whether to parse the file content (YAML/JSON). Default is False.
 
         Returns:
-            str: The file content as ASCII text.
+            Union[str, dict]: The file content as raw text or parsed data.
 
         Raises:
             SpaceFileManagerException
         """
         file_path = self._resolve_file_path(space_name, relative_path)
         logger.debug(
-            f"Reading file '{relative_path}' in space '{space_name}' as text."
+            f"Reading file '{relative_path}' in space '{space_name}' with load={load}."
         )
 
         try:
+            if load:
+                if file_path.endswith((".yaml", ".yml")):
+                    return YamlUtils.load_yaml_file(file_path)
+                elif file_path.endswith(".json"):
+                    with open(file_path, "r", encoding="ascii") as f:
+                        return json.load(f)
+                else:
+                    logger.warning(
+                        f"File '{relative_path}' in space '{space_name}' is not YAML/JSON. Returning raw content."
+                    )
+
+            # Fallback to raw text if not loading or unsupported extension
             return FileUtils.read_file(file_path, mode="r", encoding="ascii")
+
         except Exception as e:
             raise SpaceFileManagerException(
                 message=(
                     f"Failed to read file '{relative_path}' "
-                    f"in space '{space_name}'."
+                    f"in space '{space_name}' with load={load}."
                 ),
                 error_code="FILE_READ_FAILED",
-                metadata={"space": space_name, "file": relative_path},
+                metadata={"space": space_name, "file": relative_path, "load": load},
                 cause=e,
             )
+
 
     def set_file(
         self, space_name: str, relative_path: str, content: Union[str, dict]
