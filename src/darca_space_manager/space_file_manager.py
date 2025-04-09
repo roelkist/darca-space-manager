@@ -16,7 +16,7 @@ from darca_file_utils.file_utils import FileUtils
 from darca_log_facility.logger import DarcaLogger
 from darca_yaml.yaml_utils import YamlUtils
 
-from darca_space_manager.space_manager import SpaceManager
+from darca_space_manager.space_manager import SpaceManager, SpaceManagerException
 
 # Initialize logger
 logger = DarcaLogger(name="space_file_manager").get_logger()
@@ -35,215 +35,139 @@ class SpaceFileManagerException(DarcaException):
 
 
 class SpaceFileManager:
-    """
-    Manages file-level operations within a logical space.
-    """
-
     def __init__(self):
         self._space_manager = SpaceManager()
 
     def _resolve_file_path(self, space_name: str, relative_path: str) -> str:
-        if not self._space_manager.space_exists(space_name):
-            raise SpaceFileManagerException(
-                message=f"Space '{space_name}' does not exist.",
-                error_code="SPACE_NOT_FOUND",
-                metadata={"space": space_name},
-            )
-        full_path = os.path.normpath(
-            os.path.join(
-                self._space_manager._get_space_path(space_name), relative_path
-            )
-        )
-        base_path = self._space_manager._get_space_path(space_name)
-        if not full_path.startswith(base_path):
-            raise SpaceFileManagerException(
-                message=(
-                    f"Attempted to access outside of "
-                    f"space boundary: {relative_path}"
-                ),
-                error_code="INVALID_FILE_PATH",
-                metadata={"space": space_name, "resolved_path": full_path},
-            )
-        return full_path
+        self._space_manager.refresh_index()
+        try:
+            space = self._space_manager.get_space(space_name)
+            if not space:
+                raise SpaceFileManagerException(
+                    message=f"Space '{space_name}' does not exist.",
+                    error_code="SPACE_NOT_FOUND",
+                    metadata={"space": space_name},
+                )
+
+            space_path = space["path"]
+            full_path = os.path.normpath(os.path.join(space_path, relative_path))
+
+            if not full_path.startswith(space_path):
+                raise SpaceFileManagerException(
+                    message="Access outside space boundary is not allowed.",
+                    error_code="INVALID_FILE_PATH",
+                    metadata={"space": space_name, "resolved_path": full_path},
+                )
+
+            logger.debug(f"Resolved file path for '{relative_path}' in space '{space_name}': {full_path}")
+            return full_path
+        except Exception as e:
+            logger.error(f"Failed to resolve file path in space '{space_name}'.", exc_info=True)
+            raise
 
     def file_exists(self, space_name: str, relative_path: str) -> bool:
-        file_path = self._resolve_file_path(space_name, relative_path)
-        return FileUtils.file_exist(file_path)
+        try:
+            file_path = self._resolve_file_path(space_name, relative_path)
+            exists = FileUtils.file_exist(file_path)
+            logger.debug(f"File '{relative_path}' exists in space '{space_name}': {exists}")
+            return exists
+        except Exception as e:
+            logger.error(f"Error checking file existence in space '{space_name}'.", exc_info=True)
+            raise
 
     def get_file(self, space_name: str, relative_path: str, load: bool = False) -> Union[str, dict]:
-        """
-        Get the content of a file. Returns raw text or parsed content based on the load flag.
-
-        Args:
-            space_name (str): Name of the space.
-            relative_path (str): Path relative to the space root.
-            load (bool): Whether to parse the file content (YAML/JSON). Default is False.
-
-        Returns:
-            Union[str, dict]: The file content as raw text or parsed data.
-
-        Raises:
-            SpaceFileManagerException
-        """
         file_path = self._resolve_file_path(space_name, relative_path)
-        logger.debug(
-            f"Reading file '{relative_path}' in space '{space_name}' with load={load}."
-        )
+        logger.debug(f"Getting file '{relative_path}' in space '{space_name}' with load={load}.")
 
         try:
             if load:
                 if file_path.endswith((".yaml", ".yml")):
+                    logger.debug(f"Loading YAML file '{relative_path}' from space '{space_name}'.")
                     return YamlUtils.load_yaml_file(file_path)
                 elif file_path.endswith(".json"):
-                    with open(file_path, "r", encoding="ascii") as f:
+                    logger.debug(f"Loading JSON file '{relative_path}' from space '{space_name}'.")
+                    with open(file_path, "r", encoding="utf-8") as f:
                         return json.load(f)
                 else:
-                    logger.warning(
-                        f"File '{relative_path}' in space '{space_name}' is not YAML/JSON. Returning raw content."
-                    )
+                    logger.warning(f"Unsupported file type for loading: {relative_path}")
 
-            # Fallback to raw text if not loading or unsupported extension
-            return FileUtils.read_file(file_path, mode="r", encoding="ascii")
+            logger.debug(f"Reading raw content from file '{relative_path}' in space '{space_name}'.")
+            return FileUtils.read_file(file_path, mode="r", encoding="utf-8")
 
         except Exception as e:
+            logger.error(f"Failed to read file '{relative_path}' in space '{space_name}'.", exc_info=True)
             raise SpaceFileManagerException(
-                message=(
-                    f"Failed to read file '{relative_path}' "
-                    f"in space '{space_name}' with load={load}."
-                ),
+                message=f"Failed to read file '{relative_path}' in space '{space_name}'.",
                 error_code="FILE_READ_FAILED",
-                metadata={"space": space_name, "file": relative_path, "load": load},
+                metadata={"space": space_name, "file": relative_path},
                 cause=e,
             )
 
-
-    def set_file(
-        self, space_name: str, relative_path: str, content: Union[str, dict]
-    ) -> bool:
-        """
-        Write content to a file inside a space.
-        Automatically serializes dicts to YAML or JSON based on extension.
-
-        Args:
-            space_name (str): Name of the space.
-            relative_path (str): Path relative to the space root.
-            content (Union[str, dict]): Content to write.
-
-        Returns:
-            bool: True if successful.
-
-        Raises:
-            SpaceFileManagerException
-        """
+    def set_file(self, space_name: str, relative_path: str, content: Union[str, dict]) -> bool:
         file_path = self._resolve_file_path(space_name, relative_path)
-        logger.debug(
-            f"Writing file '{relative_path}' in space '{space_name}'."
-        )
+        logger.debug(f"Writing to file '{relative_path}' in space '{space_name}'.")
 
         try:
             if isinstance(content, dict):
                 if file_path.endswith((".yaml", ".yml")):
-                    YamlUtils.save_yaml_file(file_path=file_path, data=content)
+                    YamlUtils.save_yaml_file(file_path, content)
                 elif file_path.endswith(".json"):
                     json_content = json.dumps(content, indent=2)
-                    FileUtils.write_file(
-                        file_path=file_path, content=json_content
-                    )
+                    FileUtils.write_file(file_path, json_content)
                 else:
                     raise SpaceFileManagerException(
                         message="Unsupported file extension for dict content.",
                         error_code="UNSUPPORTED_DICT_SERIALIZATION",
                         metadata={
-                            "file": relative_path,
                             "space": space_name,
+                            "file": relative_path,
                             "type": str(type(content)),
                         },
                     )
             elif isinstance(content, str):
-                FileUtils.write_file(file_path=file_path, content=content)
+                FileUtils.write_file(file_path, content)
             else:
                 raise SpaceFileManagerException(
                     message="Unsupported content type for writing.",
                     error_code="UNSUPPORTED_CONTENT_TYPE",
                     metadata={
-                        "type": str(type(content)),
-                        "file": relative_path,
                         "space": space_name,
+                        "file": relative_path,
+                        "type": str(type(content)),
                     },
                 )
+
+            logger.info(f"File '{relative_path}' successfully written in space '{space_name}'.")
             return True
-        except SpaceFileManagerException:
-            raise  # Let specific exceptions bubble up
         except Exception as e:
-            raise SpaceFileManagerException(
-                message=(
-                    f"Failed to write file '{relative_path}' "
-                    f"in space '{space_name}'."
-                ),
-                error_code="FILE_WRITE_FAILED",
-                metadata={"space": space_name, "file": relative_path},
-                cause=e,
-            )
+            logger.error(f"Failed to write file '{relative_path}' in space '{space_name}'.", exc_info=True)
+            raise
 
     def delete_file(self, space_name: str, relative_path: str) -> bool:
-        """
-        Delete a file in a space.
-
-        Args:
-            space_name (str): Name of the space.
-            relative_path (str): Path relative to the space root.
-
-        Returns:
-            bool: True if successful.
-
-        Raises:
-            SpaceFileManagerException
-        """
         file_path = self._resolve_file_path(space_name, relative_path)
-        logger.debug(
-            f"Deleting file '{relative_path}' in space '{space_name}'."
-        )
+        logger.debug(f"Deleting file '{relative_path}' from space '{space_name}'.")
 
         try:
-            return FileUtils.remove_file(file_path)
+            FileUtils.remove_file(file_path)
+            logger.info(f"File '{relative_path}' successfully deleted from space '{space_name}'.")
+            return True
         except Exception as e:
-            raise SpaceFileManagerException(
-                message=(
-                    f"Failed to delete file '{relative_path}' "
-                    f"in space '{space_name}'."
-                ),
-                error_code="FILE_DELETE_FAILED",
-                metadata={"space": space_name, "file": relative_path},
-                cause=e,
-            )
+            logger.error(f"Failed to delete file '{relative_path}' from space '{space_name}'.", exc_info=True)
+            raise
 
     def list_files(self, space_name: str, recursive: bool = True) -> List[str]:
-        """
-        List files in a space.
-
-        Args:
-            space_name (str): Name of the space.
-            recursive (bool): Whether to list files recursively.
-
-        Returns:
-            List[str]: List of file paths (relative to space root).
-
-        Raises:
-            SpaceFileManagerException
-        """
-        logger.debug(
-            f"Listing files in space '{space_name}' (recursive={recursive})"
-        )
-
         try:
-            space_root = self._space_manager._get_space_path(space_name)
-            return DirectoryUtils.list_directory(
-                space_root, recursive=recursive
-            )
+            space = self._space_manager.get_space(space_name)
+            if not space:
+                raise SpaceFileManagerException(
+                    message=f"Space '{space_name}' not found.",
+                    error_code="SPACE_NOT_FOUND",
+                    metadata={"space": space_name},
+                )
+
+            files = DirectoryUtils.list_directory(space["path"], recursive=recursive)
+            logger.info(f"Listed files in space '{space_name}' (recursive={recursive}).")
+            return files
         except Exception as e:
-            raise SpaceFileManagerException(
-                message=f"Failed to list files in space '{space_name}'.",
-                error_code="LIST_FILES_FAILED",
-                metadata={"space": space_name, "recursive": recursive},
-                cause=e,
-            )
+            logger.error(f"Failed to list files in space '{space_name}'.", exc_info=True)
+            raise
