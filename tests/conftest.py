@@ -1,5 +1,7 @@
-import os
-import uuid
+# tests/conftest.py
+
+import shutil
+import tempfile
 
 import pytest
 
@@ -7,45 +9,40 @@ from darca_space_manager.space_file_manager import SpaceFileManager
 from darca_space_manager.space_manager import SpaceManager
 
 
-@pytest.fixture
-def temp_config(monkeypatch, tmp_path):
-    base = tmp_path / "darca_space"
-    monkeypatch.setattr(
-        "darca_space_manager.config.DIRECTORIES",
-        {
-            "SPACE_DIR": str(base / "spaces"),
-            "METADATA_DIR": str(base / "metadata"),
-            "LOG_DIR": str(base / "logs"),
-        },
-    )
-    yield
+@pytest.fixture(scope="function")
+def temp_darca_env(monkeypatch):
+    """
+    Fixture to isolate each test with a unique DARCA_SPACE_BASE.
+    Supports parallel execution (xdist) by using a unique temp dir.
+    """
+    temp_dir = tempfile.mkdtemp(prefix="darca_test_env_")
+    monkeypatch.setenv("DARCA_SPACE_BASE", temp_dir)
 
+    # Force config to re-evaluate with new env var
+    # We reload config module to re-trigger path creation
+    import importlib
 
-@pytest.fixture
-def space_manager(temp_config):
-    return SpaceManager()
+    import darca_space_manager.config as darca_config
 
+    importlib.reload(darca_config)
 
-@pytest.fixture
-def sample_metadata():
-    return {"owner": "tester", "purpose": "unit test", "version": 1}
+    yield temp_dir
 
-
-@pytest.fixture
-def unique_space_name(tmp_path_factory):
-    # Unique per test
-    return f"space_{tmp_path_factory.mktemp('spacetest').name}"
+    # Cleanup after test
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @pytest.fixture(scope="function")
-def space_file_manager(temp_config):
+def space_manager(temp_darca_env):
     """
-    Provides a SpaceFileManager instance and a uniquely-named test space.
-    Ensures isolation for parallel test execution.
+    Provides a fresh SpaceManager instance using the isolated temp config.
     """
-    unique_space = f"testspace_{uuid.uuid4().hex}"
-    manager = SpaceFileManager()
-    os.makedirs(
-        manager._space_manager._get_space_path(unique_space), exist_ok=True
-    )
-    return manager, unique_space
+    return SpaceManager()
+
+
+@pytest.fixture(scope="function")
+def space_file_manager(temp_darca_env):
+    """
+    Provides a fresh SpaceFileManager instance using the isolated temp config.
+    """
+    return SpaceFileManager()

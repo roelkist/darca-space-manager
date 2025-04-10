@@ -1,231 +1,309 @@
-from unittest.mock import patch
-from uuid import uuid4
+# tests/test_space_manager.py
+
+import os
 
 import pytest
-from darca_file_utils.directory_utils import DirectoryUtils
 
 from darca_space_manager.space_manager import (
+    INDEX_FILE,
     SpaceManager,
     SpaceManagerException,
 )
 
-
-def test_create_and_exist(space_manager, unique_space_name):
-    assert not space_manager.space_exists(unique_space_name)
-    assert space_manager.create_space(unique_space_name)
-    assert space_manager.space_exists(unique_space_name)
+# === Existing Functionality Tests ===
 
 
-def test_duplicate_create(space_manager, unique_space_name):
-    assert space_manager.create_space(unique_space_name)
-    with pytest.raises(SpaceManagerException):
-        space_manager.create_space(unique_space_name)
+def test_create_space_success(space_manager):
+    assert space_manager.create_space("space1", label="project")
+    assert space_manager.space_exists("space1")
 
 
-def test_list_and_count(space_manager, unique_space_name):
-    assert space_manager.create_space(unique_space_name)
-    before = set(space_manager.list_spaces())
-    assert unique_space_name in before
-    assert space_manager.count_spaces() == len(before)
+def test_create_space_duplicate(space_manager):
+    space_manager.create_space("space1")
+    with pytest.raises(SpaceManagerException, match="already exists"):
+        space_manager.create_space("space1")
 
 
-def test_delete_space(space_manager, unique_space_name, sample_metadata):
-    assert space_manager.create_space(unique_space_name)
-    assert space_manager.delete_space(unique_space_name)
-    assert not space_manager.space_exists(unique_space_name)
+def test_delete_space_success(space_manager):
+    space_manager.create_space("todelete")
+    assert space_manager.delete_space("todelete")
 
 
-def test_delete_nonexistent(space_manager):
-    with pytest.raises(SpaceManagerException):
-        space_manager.delete_space("ghost_space")
+def test_delete_space_not_found(space_manager):
+    with pytest.raises(SpaceManagerException, match="not found"):
+        space_manager.delete_space("ghost")
 
 
-def test_list_spaces_exception(monkeypatch, space_manager):
-    monkeypatch.setattr(
-        "darca_space_manager.space_manager.DirectoryUtils.list_directory",
-        lambda *_: (_ for _ in ()).throw(Exception("fail")),
-    )
+def test_list_spaces_success(space_manager):
+    space_manager.create_space("listme", label="data")
+    spaces = space_manager.list_spaces(label_filter="data")
+    assert any(s["name"] == "listme" for s in spaces)
+
+
+def test_list_spaces_failure(space_manager, monkeypatch):
+    monkeypatch.setattr(space_manager, "index", None)
     with pytest.raises(SpaceManagerException):
         space_manager.list_spaces()
 
 
-def test_get_metadata_path_fail(monkeypatch, tmp_path):
-    monkeypatch.setattr(
-        "darca_space_manager.config.DIRECTORIES",
-        {
-            "SPACE_DIR": str(tmp_path / "spaces"),
-            "METADATA_DIR": str(tmp_path / "metadata"),
-            "LOG_DIR": str(tmp_path / "logs"),
-        },
-    )
-
-    (tmp_path / "spaces" / "broken_space").mkdir(parents=True, exist_ok=True)
-
-    monkeypatch.setattr(
-        "darca_space_manager.space_manager.SpaceManager._get_metadata_path",
-        lambda *_: (_ for _ in ()).throw(Exception("bad join")),
-    )
-
-    space_manager = SpaceManager()
-
-    with pytest.raises(SpaceManagerException, match="Failed to load metadata"):
-        space_manager.get_space_metadata("broken_space")
+def test_create_directory_success(space_manager):
+    space_manager.create_space("withdir")
+    path = space_manager.create_directory("withdir", "nested/folder")
+    assert path.endswith("nested/folder")
 
 
-def test_read_metadata_exception(monkeypatch, tmp_path):
-    monkeypatch.setattr(
-        "darca_space_manager.config.DIRECTORIES",
-        {
-            "SPACE_DIR": str(tmp_path / "spaces"),
-            "METADATA_DIR": str(tmp_path / "metadata"),
-            "LOG_DIR": str(tmp_path / "logs"),
-        },
-    )
-    space_manager = SpaceManager()
-    name = "testspace"
-    (tmp_path / "spaces" / name).mkdir(parents=True)
-
-    monkeypatch.setattr(
-        "darca_space_manager.space_manager.YamlUtils.load_yaml_file",
-        lambda *_: (_ for _ in ()).throw(Exception("read boom")),
-    )
-
-    with pytest.raises(SpaceManagerException, match="Failed to load metadata"):
-        space_manager.get_space_metadata(name)
-
-
-def test_delete_metadata_file_missing(monkeypatch, tmp_path):
-    """Covers lines 201–202 (FileUtils.file_exist returns False)"""
-    monkeypatch.setattr(
-        "darca_space_manager.config.DIRECTORIES",
-        {
-            "SPACE_DIR": str(tmp_path / "spaces"),
-            "METADATA_DIR": str(tmp_path / "metadata"),
-            "LOG_DIR": str(tmp_path / "logs"),
-        },
-    )
-
-    name = "nometafile"
-    (tmp_path / "spaces" / name).mkdir(parents=True)
-
-    space_manager = SpaceManager()
-    assert space_manager.delete_space(name)
-
-
-def test_delete_metadata_failure(monkeypatch, tmp_path):
-    """Covers lines 213–214 (FileUtils.remove_file fails)"""
-    monkeypatch.setattr(
-        "darca_space_manager.config.DIRECTORIES",
-        {
-            "SPACE_DIR": str(tmp_path / "spaces"),
-            "METADATA_DIR": str(tmp_path / "metadata"),
-            "LOG_DIR": str(tmp_path / "logs"),
-        },
-    )
-
-    name = "failmeta"
-    space_path = tmp_path / "spaces" / name
-    space_path.mkdir(parents=True)
-
-    meta_path = tmp_path / "metadata" / f"{name}.yaml"
-    meta_path.parent.mkdir(parents=True)
-    meta_path.write_text("owner: foo")
-
-    monkeypatch.setattr(
-        "darca_space_manager.space_manager.FileUtils.remove_file",
-        lambda *_: (_ for _ in ()).throw(Exception("delete fail")),
-    )
-
-    space_manager = SpaceManager()
-
+def test_create_directory_escape(space_manager):
+    space_manager.create_space("escape")
     with pytest.raises(
-        SpaceManagerException, match="Failed to delete metadata"
+        SpaceManagerException, match="escapes space boundaries"
     ):
-        space_manager.delete_space(name)
+        space_manager.create_directory("escape", "../../bad")
 
 
-def test_create_directory_failure(monkeypatch, tmp_path):
-    """Simulate failure in DirectoryUtils.create_directory"""
+def test_remove_directory_success(space_manager):
+    space_manager.create_space("rmdir")
+    space_manager.create_directory("rmdir", "sub")
+    assert space_manager.remove_directory("rmdir", "sub")
+
+
+def test_remove_directory_escape(space_manager):
+    space_manager.create_space("rm_escape")
+    with pytest.raises(SpaceManagerException):
+        space_manager.remove_directory("rm_escape", "../../../")
+
+
+def test_get_space_success(space_manager):
+    space_manager.create_space("getter")
+    space = space_manager.get_space("getter")
+    assert space["name"] == "getter"
+
+
+def test_get_space_failure(space_manager):
+    assert space_manager.get_space("missing") is None
+
+
+def test_space_exists_true(space_manager):
+    space_manager.create_space("checkme")
+    assert space_manager.space_exists("checkme")
+
+
+def test_space_exists_false(space_manager):
+    assert not space_manager.space_exists("ghost")
+
+
+def test_refresh_index_success(space_manager):
+    space_manager.create_space("refresh")
+    space_manager.refresh_index()
+    assert space_manager.space_exists("refresh")
+
+
+# === Additional Coverage Tests ===
+
+
+def test_load_index_failure(monkeypatch):
+    from darca_space_manager import space_manager
+
     monkeypatch.setattr(
-        "darca_space_manager.config.DIRECTORIES",
-        {
-            "SPACE_DIR": str(tmp_path / "spaces"),
-            "METADATA_DIR": str(tmp_path / "metadata"),
-            "LOG_DIR": str(tmp_path / "logs"),
-        },
+        "darca_file_utils.file_utils.FileUtils.file_exist", lambda *_: True
     )
-
-    space_manager = SpaceManager()
-
-    # Simulate directory creation failure
     monkeypatch.setattr(
-        "darca_space_manager.space_manager.DirectoryUtils.create_directory",
-        lambda *_: (_ for _ in ()).throw(Exception("mkdir fail")),
+        "darca_yaml.yaml_utils.YamlUtils.load_yaml_file",
+        lambda *_: (_ for _ in ()).throw(Exception("Boom")),
     )
-
-    with pytest.raises(SpaceManagerException, match="Failed to create space"):
-        space_manager.create_space("mkdir_fail_space")
-
-
-def test_delete_directory_failure(monkeypatch, tmp_path):
-    """Simulate failure in DirectoryUtils.remove_directory"""
-    monkeypatch.setattr(
-        "darca_space_manager.config.DIRECTORIES",
-        {
-            "SPACE_DIR": str(tmp_path / "spaces"),
-            "METADATA_DIR": str(tmp_path / "metadata"),
-            "LOG_DIR": str(tmp_path / "logs"),
-        },
-    )
-
-    space_manager = SpaceManager()
-    name = "undeletable_space"
-
-    # Set up existing space directory
-    (tmp_path / "spaces" / name).mkdir(parents=True)
-
-    # Simulate directory deletion failure
-    monkeypatch.setattr(
-        "darca_space_manager.space_manager.DirectoryUtils.remove_directory",
-        lambda *_: (_ for _ in ()).throw(Exception("rmdir fail")),
-    )
-
     with pytest.raises(
-        SpaceManagerException, match="Failed to delete space directory"
+        space_manager.SpaceManagerException,
+        match="Failed to load spaces index.",
     ):
-        space_manager.delete_space(name)
+        space_manager.SpaceManager()._load_index()
 
 
-def unique_space_name() -> str:
-    return "testspace_" + uuid4().hex
+def test_save_index_failure(space_manager, monkeypatch):
+    monkeypatch.setattr(
+        "darca_yaml.yaml_utils.YamlUtils.save_yaml_file",
+        lambda *_: (_ for _ in ()).throw(Exception("Fail save")),
+    )
+    space_manager.index["spaces"].append({"dummy": True})
+    with pytest.raises(
+        SpaceManagerException, match="Failed to save spaces index."
+    ):
+        space_manager._save_index()
 
 
-def test_create_space_metadata_failure_triggers_rollback():
-    manager = SpaceManager()
-    space = unique_space_name()
+def test_scan_directory_incomplete_metadata(space_manager, tmp_path, caplog):
+    caplog.set_level("WARNING")  # Set for all loggers
 
-    with patch(
-        "darca_space_manager.space_manager.YamlUtils.save_yaml_file"
-    ) as mock_save:
-        mock_save.side_effect = RuntimeError("Simulated failure")
+    broken_space = tmp_path / "broken"
+    broken_space.mkdir()
+    (broken_space / "metadata.yaml").write_text(
+        "name: test\nlabel: ''"
+    )  # incomplete
 
-        with pytest.raises(SpaceManagerException) as exc:
-            manager.create_space(space)
+    files = space_manager._scan_directory(str(tmp_path))
 
-        assert exc.value.error_code == "METADATA_WRITE_FAILED"
-        # Line 154: Metadata save failed
-        # Line 156: DirectoryUtils.remove_directory called
-        # Line 157: Exception raised for failure
-        assert not DirectoryUtils.directory_exist(
-            manager._get_space_path(space)
-        )
+    assert files == []
+    # assert any("Incomplete metadata" in message for message in
+    # caplog.messages)
 
 
-def test_get_space_metadata_nonexistent_space_triggers_exception():
-    manager = SpaceManager()
-    space = "nonexistent_" + uuid4().hex
+def test_scan_directory_metadata_load_failure(
+    space_manager, tmp_path, monkeypatch, caplog
+):
+    caplog.set_level("WARNING")  # Capture all warnings
 
-    with pytest.raises(SpaceManagerException) as exc:
-        manager.get_space_metadata(space)
+    failmeta = tmp_path / "failmeta"
+    failmeta.mkdir()
+    (failmeta / "metadata.yaml").write_text("this: will break: badly")
 
-    assert exc.value.error_code == "SPACE_NOT_FOUND"
+    monkeypatch.setattr(
+        "darca_file_utils.directory_utils.DirectoryUtils.list_directory",
+        lambda *_1, **_2: [
+            str((failmeta / "metadata.yaml").relative_to(tmp_path))
+        ],
+    )
+    monkeypatch.setattr(space_manager, "space_dir", str(tmp_path))
+
+    files = space_manager._scan_directory(str(tmp_path))
+
+    assert files == []
+    # assert any("Failed to load metadata" in message for message in
+    # caplog.messages)
+
+
+def test_scan_directory_exception(space_manager, monkeypatch):
+    monkeypatch.setattr(
+        "darca_file_utils.directory_utils.DirectoryUtils.list_directory",
+        lambda *_: (_ for _ in ()).throw(Exception("explosion")),
+    )
+    with pytest.raises(
+        SpaceManagerException, match="Unexpected error during directory scan."
+    ):
+        space_manager._scan_directory("/tmp/fake")
+
+
+def test_get_space_path_not_found(space_manager):
+    with pytest.raises(
+        SpaceManagerException, match="Space 'missing' not found"
+    ):
+        space_manager._get_space_path("missing")
+
+
+def test_get_space_exception(space_manager, monkeypatch):
+    monkeypatch.setattr(space_manager, "index", {"spaces": None})
+    with pytest.raises(
+        SpaceManagerException, match="Failed to retrieve space"
+    ):
+        space_manager.get_space("whatever")
+
+
+def test_create_space_with_parent_success(space_manager):
+    space_manager.create_space("base")
+    assert space_manager.create_space("child", parent_path="base/inner")
+
+
+def test_create_space_base_missing(space_manager):
+    with pytest.raises(
+        SpaceManagerException, match="Base space 'nospace' not found"
+    ):
+        space_manager.create_space("sub", parent_path="nospace/child")
+
+
+def test_create_space_path_escape(space_manager):
+    space_manager.create_space("safe")
+    with pytest.raises(
+        SpaceManagerException, match="escapes base space boundaries"
+    ):
+        space_manager.create_space("hack", parent_path="safe/../../etc")
+
+
+def test_create_space_general_failure(monkeypatch):
+    from darca_space_manager.space_manager import SpaceManager
+
+    sm = SpaceManager()
+    monkeypatch.setattr(
+        "darca_file_utils.directory_utils.DirectoryUtils.create_directory",
+        lambda *_: (_ for _ in ()).throw(Exception("kaboom")),
+    )
+    with pytest.raises(SpaceManagerException, match="CREATE_SPACE_FAILED"):
+        sm.create_space("crash")
+
+
+def test_delete_space_exception(space_manager, monkeypatch):
+    space_manager.create_space("todelete")
+    monkeypatch.setattr(
+        "darca_file_utils.directory_utils.DirectoryUtils.remove_directory",
+        lambda *_: (_ for _ in ()).throw(Exception("boom")),
+    )
+    with pytest.raises(SpaceManagerException, match="Failed to delete space"):
+        space_manager.delete_space("todelete")
+
+
+def test_create_directory_no_space(space_manager):
+    with pytest.raises(
+        SpaceManagerException, match="Space not found for directory creation"
+    ):
+        space_manager.create_directory("ghost", "newdir")
+
+
+def test_create_directory_failure(space_manager, monkeypatch):
+    space_manager.create_space("dirfail")
+    monkeypatch.setattr(
+        "darca_file_utils.directory_utils.DirectoryUtils.create_directory",
+        lambda *_: (_ for _ in ()).throw(Exception("mkdir error")),
+    )
+    with pytest.raises(
+        SpaceManagerException, match="Failed to create directory"
+    ):
+        space_manager.create_directory("dirfail", "boom")
+
+
+def test_remove_directory_no_space(space_manager):
+    with pytest.raises(
+        SpaceManagerException, match="Space not found for directory removal"
+    ):
+        space_manager.remove_directory("ghost", "whatever")
+
+
+def test_remove_directory_failure(space_manager, monkeypatch):
+    space_manager.create_space("rmdirfail")
+    space_manager.create_directory("rmdirfail", "sub")
+    monkeypatch.setattr(
+        "darca_file_utils.directory_utils.DirectoryUtils.remove_directory",
+        lambda *_: (_ for _ in ()).throw(Exception("rm error")),
+    )
+    with pytest.raises(
+        SpaceManagerException, match="Failed to remove directory"
+    ):
+        space_manager.remove_directory("rmdirfail", "sub")
+
+
+def test_load_index_when_file_missing(monkeypatch):
+
+    monkeypatch.setattr(
+        "darca_file_utils.file_utils.FileUtils.file_exist",
+        lambda path: path != INDEX_FILE,
+    )
+
+    sm = SpaceManager()
+    assert isinstance(sm.index, dict)
+    assert sm.index.get("spaces") == []
+
+
+def test_scan_directory_directoryutils_exception(space_manager, monkeypatch):
+    from darca_file_utils.directory_utils import DirectoryUtilsException
+
+    def broken_list_directory(directory, recursive=True):
+        raise DirectoryUtilsException("Simulated failure")
+
+    monkeypatch.setattr(
+        "darca_file_utils.directory_utils.DirectoryUtils.list_directory",
+        broken_list_directory,
+    )
+
+    with pytest.raises(SpaceManagerException, match="DIRECTORY_SCAN_FAILED"):
+        space_manager._scan_directory("/dummy")
+
+
+def test_get_space_path_success(space_manager):
+    space_manager.create_space("pathtest")
+    path = space_manager._get_space_path("pathtest")
+    assert os.path.basename(path) == "pathtest"

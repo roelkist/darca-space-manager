@@ -1,10 +1,14 @@
 import os
 
-# Default max spaces limit
-MAX_SPACES = 10
+# Use environment variable if set (e.g. in containers or tests)
+DARCA_SPACE_BASE = os.getenv("DARCA_SPACE_BASE")
 
-# Define the base directory following the Filesystem Hierarchy Standard (FHS)
-DEFAULT_BASE_DIR = os.path.expanduser("~/.local/share/darca_space")
+# Define the base directory
+DEFAULT_BASE_DIR = (
+    DARCA_SPACE_BASE
+    if DARCA_SPACE_BASE
+    else os.path.expanduser("~/.local/share/darca_space")
+)
 
 # Directory configurations (local storage)
 DIRECTORIES = {

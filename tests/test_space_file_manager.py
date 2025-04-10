@@ -1,153 +1,176 @@
-import os
-from uuid import uuid4
-
+# tests/test_space_file_manager.py
 import pytest
+from darca_file_utils.file_utils import FileUtils, FileUtilsException
 
-from darca_space_manager.space_file_manager import (
-    SpaceFileManager,
-    SpaceFileManagerException,
-)
+from darca_space_manager.space_file_manager import SpaceFileManagerException
 
 
-def unique_filename(ext: str) -> str:
-    return f"file_{uuid4().hex}{ext}"
+def test_file_exists_true(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("testspace")
+    sfm.set_file("testspace", "file.txt", "Hello")
+    assert sfm.file_exists("testspace", "file.txt")
 
 
-def test_set_and_get_text_file(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".txt")
-    content = "Hello, ASCII!"
-    assert manager.set_file(space, filename, content)
-    assert manager.get_file(space, filename) == content
+def test_file_exists_invalid(space_file_manager):
+    with pytest.raises(SpaceFileManagerException):
+        space_file_manager.file_exists("ghost", "file.txt")
 
 
-def test_set_and_get_yaml(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".yaml")
-    data = {"project": "darca", "version": 1}
-    assert manager.set_file(space, filename, data)
-    result = manager.get_file(space, filename)
-    assert "project: darca" in result
+def test_get_file_success(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("getspace")
+    sfm.set_file("getspace", "data.txt", "value")
+    content = sfm.get_file("getspace", "data.txt")
+    assert "value" in content
 
 
-def test_set_and_get_yml(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".yml")
-    data = {"foo": "bar"}
-    assert manager.set_file(space, filename, data)
-    result = manager.get_file(space, filename)
-    assert "foo: bar" in result
+def test_get_file_fail(space_file_manager):
+    with pytest.raises(SpaceFileManagerException):
+        space_file_manager.get_file("ghost", "nofile.txt")
 
 
-def test_set_and_get_json(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".json")
-    data = {"key": "value", "numbers": [1, 2]}
-    assert manager.set_file(space, filename, data)
-    result = manager.get_file(space, filename)
-    assert '"key": "value"' in result
+def test_set_file_text_success(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("write")
+    assert sfm.set_file("write", "hello.txt", "Hello")
 
 
-def test_file_exists(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".txt")
-    manager.set_file(space, filename, "exists")
-    assert manager.file_exists(space, filename)
+def test_set_file_unsupported_content(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("badwrite")
+    with pytest.raises(SpaceFileManagerException):
+        sfm.set_file("badwrite", "bad.bin", 42)
 
 
-def test_delete_file(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".txt")
-    manager.set_file(space, filename, "remove me")
-    assert manager.delete_file(space, filename)
-    assert not manager.file_exists(space, filename)
+def test_delete_file_success(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("del")
+    sfm.set_file("del", "d.txt", "bye")
+    assert sfm.delete_file("del", "d.txt")
 
 
-def test_list_files(space_file_manager):
-    manager, space = space_file_manager
-    files = [
-        unique_filename(".a"),
-        unique_filename(".b"),
-        unique_filename(".c"),
-    ]
-    for f in files:
-        manager.set_file(space, f, "test content")
-    listed = manager.list_files(space)
-    assert all(f in listed for f in files)
+def test_delete_file_fail(space_file_manager):
+    with pytest.raises(Exception):
+        space_file_manager.delete_file("ghost", "fail.txt")
 
 
-def test_get_file_outside_space_raises(space_file_manager):
-    manager, space = space_file_manager
+def test_list_files_success(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("list")
+    sfm.set_file("list", "visible.txt", "yes")
+    files = sfm.list_files("list")
+    assert any("visible.txt" in f for f in files)
+
+
+def test_list_files_fail(space_file_manager):
+    with pytest.raises(SpaceFileManagerException):
+        space_file_manager.list_files("missing")
+
+
+def test_set_file_escape_path(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("escape")
     with pytest.raises(
-        SpaceFileManagerException, match="outside of space boundary"
+        SpaceFileManagerException, match="outside space boundary"
     ):
-        manager.get_file(space, "../hax.txt")
+        sfm.set_file("escape", "../../outside.txt", "nope")
 
 
-def test_set_file_with_unsupported_dict_extension(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".txt")
+def test_get_file_yaml(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("ymlspace")
+    content = {"a": 1}
+    sfm.set_file("ymlspace", "data.yaml", content)
+    assert sfm.get_file("ymlspace", "data.yaml", load=True) == content
+
+
+def test_get_file_yml(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("yml2")
+    content = {"b": 2}
+    sfm.set_file("yml2", "data.yml", content)
+    assert sfm.get_file("yml2", "data.yml", load=True) == content
+
+
+def test_get_file_json(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("jsonspace")
+    content = {"key": "value"}
+    sfm.set_file("jsonspace", "file.json", content)
+    assert sfm.get_file("jsonspace", "file.json", load=True) == content
+
+
+def test_get_file_unsupported_load(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("weird")
+    sfm.set_file("weird", "raw.txt", "just text")
+    result = sfm.get_file("weird", "raw.txt", load=True)
+    assert isinstance(result, str)
+
+
+def test_get_file_read_failure(space_file_manager, monkeypatch):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("brokenread")
+    sfm.set_file("brokenread", "fail.txt", "failme")
+
+    broken_file_path = sfm._resolve_file_path("brokenread", "fail.txt")
+
+    # 👇 Save original BEFORE monkeypatching
+    original_read_file = FileUtils.read_file
+
+    def selective_read(path, *args, **kwargs):
+        if path == broken_file_path:
+            raise FileUtilsException("Simulated read failure")
+        return original_read_file(path, *args, **kwargs)  # 👈 use original
+
+    monkeypatch.setattr(FileUtils, "read_file", selective_read)
+
+    with pytest.raises(SpaceFileManagerException, match="Failed to read file"):
+        sfm.get_file("brokenread", "fail.txt")
+
+
+def test_set_file_yaml_success(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("y1")
+    data = {"x": 123}
+    assert sfm.set_file("y1", "thing.yaml", data)
+
+
+def test_set_file_yml_success(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("y2")
+    data = {"x": 456}
+    assert sfm.set_file("y2", "thing.yml", data)
+
+
+def test_set_file_json_success(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("j1")
+    data = {"hello": "world"}
+    assert sfm.set_file("j1", "thing.json", data)
+
+
+def test_set_file_dict_unsupported_extension(space_file_manager):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("dictfail")
     with pytest.raises(
         SpaceFileManagerException, match="Unsupported file extension"
     ):
-        manager.set_file(space, filename, {"key": "val"})
+        sfm.set_file("dictfail", "note.txt", {"bad": "ext"})
 
 
-def test_set_file_with_invalid_type(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".txt")
-    with pytest.raises(
-        SpaceFileManagerException, match="Unsupported content type"
-    ):
-        manager.set_file(space, filename, 12345)
+def test_delete_file_failure(space_file_manager, monkeypatch):
+    sfm = space_file_manager
+    sfm._space_manager.create_space("delerr")
+    sfm.set_file("delerr", "oops.txt", "delete me")
 
+    def explode(*args, **kwargs):
+        raise OSError("delete failed")
 
-def test_get_file_non_ascii(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".txt")
-    file_path = os.path.join(
-        manager._space_manager._get_space_path(space), filename
+    monkeypatch.setattr(
+        "darca_file_utils.file_utils.FileUtils.remove_file", explode
     )
-    with open(file_path, "wb") as f:
-        f.write("Café au lait".encode("utf-8"))
-    with pytest.raises(SpaceFileManagerException, match="FILE_READ_FAILED"):
-        manager.get_file(space, filename)
 
-
-def test_delete_non_existent_file(space_file_manager):
-    manager, space = space_file_manager
-    filename = unique_filename(".ghost")
-    with pytest.raises(SpaceFileManagerException, match="FILE_DELETE_FAILED"):
-        manager.delete_file(space, filename)
-
-
-def test_list_files_in_missing_space():
-    sfm = SpaceFileManager()
-    missing_space = "missing_" + uuid4().hex
-    with pytest.raises(SpaceFileManagerException, match="LIST_FILES_FAILED"):
-        sfm.list_files(missing_space)
-
-
-def test_set_file_json_dumps_failure_triggers_generic_exception(
-    space_file_manager,
-):
-    manager, space = space_file_manager
-    filename = unique_filename(".json")
-
-    content = {"key": lambda x: x}  # Not JSON serializable
-
-    with pytest.raises(SpaceFileManagerException) as exc:
-        manager.set_file(space, filename, content)
-
-    assert exc.value.error_code == "FILE_WRITE_FAILED"
-    assert "Failed to write file" in str(exc.value)
-
-
-def test_resolve_file_path_raises_on_nonexistent_space():
-    manager = SpaceFileManager()
-    nonexistent_space = "does_not_exist_" + uuid4().hex
-
-    with pytest.raises(SpaceFileManagerException) as exc:
-        manager.get_file(nonexistent_space, "file.txt")
-
-    assert exc.value.error_code == "SPACE_NOT_FOUND"
+    with pytest.raises(Exception, match="delete failed"):
+        sfm.delete_file("delerr", "oops.txt")
