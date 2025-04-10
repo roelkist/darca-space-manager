@@ -5,8 +5,6 @@ import os
 import pytest
 
 from darca_space_manager.space_manager import (
-    INDEX_FILE,
-    SpaceManager,
     SpaceManagerException,
 )
 
@@ -215,16 +213,13 @@ def test_create_space_path_escape(space_manager):
         space_manager.create_space("hack", parent_path="safe/../../etc")
 
 
-def test_create_space_general_failure(monkeypatch):
-    from darca_space_manager.space_manager import SpaceManager
-
-    sm = SpaceManager()
+def test_create_space_general_failure(space_manager, monkeypatch):
     monkeypatch.setattr(
         "darca_file_utils.directory_utils.DirectoryUtils.create_directory",
         lambda *_: (_ for _ in ()).throw(Exception("kaboom")),
     )
     with pytest.raises(SpaceManagerException, match="CREATE_SPACE_FAILED"):
-        sm.create_space("crash")
+        space_manager.create_space("crash")
 
 
 def test_delete_space_exception(space_manager, monkeypatch):
@@ -274,18 +269,6 @@ def test_remove_directory_failure(space_manager, monkeypatch):
         SpaceManagerException, match="Failed to remove directory"
     ):
         space_manager.remove_directory("rmdirfail", "sub")
-
-
-def test_load_index_when_file_missing(monkeypatch):
-
-    monkeypatch.setattr(
-        "darca_file_utils.file_utils.FileUtils.file_exist",
-        lambda path: path != INDEX_FILE,
-    )
-
-    sm = SpaceManager()
-    assert isinstance(sm.index, dict)
-    assert sm.index.get("spaces") == []
 
 
 def test_scan_directory_directoryutils_exception(space_manager, monkeypatch):

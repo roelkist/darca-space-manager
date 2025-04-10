@@ -1,22 +1,24 @@
 import os
 
-# Use environment variable if set (e.g. in containers or tests)
-DARCA_SPACE_BASE = os.getenv("DARCA_SPACE_BASE")
 
-# Define the base directory
-DEFAULT_BASE_DIR = (
-    DARCA_SPACE_BASE
-    if DARCA_SPACE_BASE
-    else os.path.expanduser("~/.local/share/darca_space")
-)
+def get_base_dir():
+    """Get the DARCA_SPACE_BASE directory (from env or default)."""
+    return os.getenv(
+        "DARCA_SPACE_BASE", os.path.expanduser("~/.local/share/darca_space")
+    )
 
-# Directory configurations (local storage)
-DIRECTORIES = {
-    "SPACE_DIR": os.path.join(DEFAULT_BASE_DIR, "spaces"),
-    "METADATA_DIR": os.path.join(DEFAULT_BASE_DIR, "metadata"),
-    "LOG_DIR": os.path.join(DEFAULT_BASE_DIR, "logs"),
-}
 
-# Ensure directories exist at module load
-for path in DIRECTORIES.values():
-    os.makedirs(path, exist_ok=True)
+def get_directories():
+    """Return the configured subdirectories."""
+    base = get_base_dir()
+    return {
+        "SPACE_DIR": os.path.join(base, "spaces"),
+        "METADATA_DIR": os.path.join(base, "metadata"),
+        "LOG_DIR": os.path.join(base, "logs"),
+    }
+
+
+def ensure_directories_exist():
+    """Ensure necessary directories exist."""
+    for path in get_directories().values():
+        os.makedirs(path, exist_ok=True)

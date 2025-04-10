@@ -23,9 +23,6 @@ from darca_space_manager import config
 
 logger = DarcaLogger(name="space_manager").get_logger()
 
-INDEX_FILE = os.path.join(
-    config.DIRECTORIES["METADATA_DIR"], "spaces_index.yaml"
-)
 METADATA_FILENAME = "metadata.yaml"
 
 
@@ -41,20 +38,23 @@ class SpaceManagerException(DarcaException):
 
 class SpaceManager:
     def __init__(self):
-        for path in config.DIRECTORIES.values():
-            os.makedirs(path, exist_ok=True)
-        self.space_dir = config.DIRECTORIES["SPACE_DIR"]
+        config.ensure_directories_exist()
+        dirs = config.get_directories()
+        self.space_dir = dirs["SPACE_DIR"]
         self.index = self._load_index()
         self.refresh_index()
         logger.info("✅ SpaceManager initialized and index refreshed.")
 
     def _load_index(self) -> Dict:
         try:
-            if not FileUtils.file_exist(INDEX_FILE):
+            index_file = os.path.join(
+                config.get_directories()["METADATA_DIR"], "spaces_index.yaml"
+            )
+            if not FileUtils.file_exist(index_file):
                 logger.info("ℹ️ Index file not found. Initializing new index.")
                 return {"spaces": []}
             logger.debug("🔍 Loading index file.")
-            return YamlUtils.load_yaml_file(INDEX_FILE)
+            return YamlUtils.load_yaml_file(index_file)
         except Exception as e:
             logger.error("❌ Failed to load index file.", exc_info=True)
             raise SpaceManagerException(
@@ -65,7 +65,10 @@ class SpaceManager:
 
     def _save_index(self):
         try:
-            YamlUtils.save_yaml_file(INDEX_FILE, self.index)
+            index_file = os.path.join(
+                config.get_directories()["METADATA_DIR"], "spaces_index.yaml"
+            )
+            YamlUtils.save_yaml_file(index_file, self.index)
             logger.debug("💾 Index successfully saved.")
         except Exception as e:
             logger.error("❌ Failed to save index.", exc_info=True)
