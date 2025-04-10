@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>darca_space_manager.space_file_manager &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.3.0 documentation</title>
+  <title>darca_space_manager.space_file_manager &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=e259d695"></script>
+      <script src="../../_static/documentation_options.js?v=6c02275b"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -88,7 +88,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">darca_log_facility.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">DarcaLogger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">darca_yaml.yaml_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">YamlUtils</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager.space_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpaceManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager.space_manager</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SpaceManager</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="c1"># Initialize logger</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">DarcaLogger</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;space_file_manager&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
@@ -112,73 +114,110 @@
 <div class="viewcode-block" id="SpaceFileManager">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_file_manager.SpaceFileManager">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SpaceFileManager</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Manages file-level operations within a logical space.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_space_manager</span> <span class="o">=</span> <span class="n">SpaceManager</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_file_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_space_manager</span><span class="o">.</span><span class="n">space_exists</span><span class="p">(</span><span class="n">space_name</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39; does not exist.&quot;</span><span class="p">,</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_NOT_FOUND&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">},</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_space_manager</span><span class="o">.</span><span class="n">refresh_index</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_space_manager</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="n">space_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">space</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39; does not exist.&quot;</span><span class="p">,</span>
+                    <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_NOT_FOUND&quot;</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">},</span>
+                <span class="p">)</span>
+
+            <span class="n">space_path</span> <span class="o">=</span> <span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span>
+            <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">space_path</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
             <span class="p">)</span>
-        <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_space_manager</span><span class="o">.</span><span class="n">_get_space_path</span><span class="p">(</span><span class="n">space_name</span><span class="p">),</span> <span class="n">relative_path</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">full_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">space_path</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
+                    <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Access outside space boundary is not allowed.&quot;</span><span class="p">,</span>
+                    <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;INVALID_FILE_PATH&quot;</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;resolved_path&quot;</span><span class="p">:</span> <span class="n">full_path</span><span class="p">},</span>
+                <span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Resolved file path for &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">base_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_space_manager</span><span class="o">.</span><span class="n">_get_space_path</span><span class="p">(</span><span class="n">space_name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">full_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">base_path</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Attempted to access outside of &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;space boundary: </span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="p">),</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;INVALID_FILE_PATH&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;resolved_path&quot;</span><span class="p">:</span> <span class="n">full_path</span><span class="p">},</span>
+            <span class="k">return</span> <span class="n">full_path</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to resolve file path in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">full_path</span>
+            <span class="k">raise</span>
 
 <div class="viewcode-block" id="SpaceFileManager.file_exists">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_file_manager.SpaceFileManager.file_exists">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">file_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="n">file_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_file_path</span><span class="p">(</span><span class="n">space_name</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">FileUtils</span><span class="o">.</span><span class="n">file_exist</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span></div>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_file_path</span><span class="p">(</span><span class="n">space_name</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
+            <span class="n">exists</span> <span class="o">=</span> <span class="n">FileUtils</span><span class="o">.</span><span class="n">file_exist</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;File &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; exists in space &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">exists</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">exists</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Error checking file existence in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">raise</span></div>
 
 
 <div class="viewcode-block" id="SpaceFileManager.get_file">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_file_manager.SpaceFileManager.get_file">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Get the ASCII content of a file. Returns raw text even</span>
-<span class="sd">        for YAML/JSON files.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            space_name (str): Name of the space.</span>
-<span class="sd">            relative_path (str): Path relative to the space root.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            str: The file content as ASCII text.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            SpaceFileManagerException</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_file</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">load</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
         <span class="n">file_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_file_path</span><span class="p">(</span><span class="n">space_name</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Reading file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39; as text.&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Getting file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in space &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39; with load=</span><span class="si">{</span><span class="n">load</span><span class="si">}</span><span class="s2">.&quot;</span>
         <span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">FileUtils</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">load</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">file_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s2">&quot;.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;.yml&quot;</span><span class="p">)):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Loading YAML file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;from space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">return</span> <span class="n">YamlUtils</span><span class="o">.</span><span class="n">load_yaml_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">file_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Loading JSON file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;from space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Unsupported file type for loading: </span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Reading raw content from file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">FileUtils</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to read file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
                 <span class="n">message</span><span class="o">=</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Failed to read file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Failed to read file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
                 <span class="p">),</span>
                 <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;FILE_READ_FAILED&quot;</span><span class="p">,</span>
                 <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">},</span>
@@ -191,139 +230,104 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">set_file</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Write content to a file inside a space.</span>
-<span class="sd">        Automatically serializes dicts to YAML or JSON based on extension.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            space_name (str): Name of the space.</span>
-<span class="sd">            relative_path (str): Path relative to the space root.</span>
-<span class="sd">            content (Union[str, dict]): Content to write.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            bool: True if successful.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            SpaceFileManagerException</span>
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">file_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_file_path</span><span class="p">(</span><span class="n">space_name</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Writing file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Writing to file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
         <span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">file_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s2">&quot;.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;.yml&quot;</span><span class="p">)):</span>
-                    <span class="n">YamlUtils</span><span class="o">.</span><span class="n">save_yaml_file</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">content</span><span class="p">)</span>
+                    <span class="n">YamlUtils</span><span class="o">.</span><span class="n">save_yaml_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">file_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">):</span>
                     <span class="n">json_content</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-                    <span class="n">FileUtils</span><span class="o">.</span><span class="n">write_file</span><span class="p">(</span>
-                        <span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">json_content</span>
-                    <span class="p">)</span>
+                    <span class="n">FileUtils</span><span class="o">.</span><span class="n">write_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">json_content</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
                         <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Unsupported file extension for dict content.&quot;</span><span class="p">,</span>
                         <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;UNSUPPORTED_DICT_SERIALIZATION&quot;</span><span class="p">,</span>
                         <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
-                            <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">,</span>
                             <span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span>
+                            <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">,</span>
                             <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">content</span><span class="p">)),</span>
                         <span class="p">},</span>
                     <span class="p">)</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                <span class="n">FileUtils</span><span class="o">.</span><span class="n">write_file</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">)</span>
+                <span class="n">FileUtils</span><span class="o">.</span><span class="n">write_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
                     <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Unsupported content type for writing.&quot;</span><span class="p">,</span>
                     <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;UNSUPPORTED_CONTENT_TYPE&quot;</span><span class="p">,</span>
                     <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
-                        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">content</span><span class="p">)),</span>
-                        <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">,</span>
                         <span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span>
+                        <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">,</span>
+                        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">content</span><span class="p">)),</span>
                     <span class="p">},</span>
                 <span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;File &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; successfully written in &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
             <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">except</span> <span class="n">SpaceFileManagerException</span><span class="p">:</span>
-            <span class="k">raise</span>  <span class="c1"># Let specific exceptions bubble up</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Failed to write file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
-                <span class="p">),</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;FILE_WRITE_FAILED&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">},</span>
-                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
-            <span class="p">)</span></div>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to write file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">raise</span></div>
 
 
 <div class="viewcode-block" id="SpaceFileManager.delete_file">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_file_manager.SpaceFileManager.delete_file">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">delete_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Delete a file in a space.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            space_name (str): Name of the space.</span>
-<span class="sd">            relative_path (str): Path relative to the space root.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            bool: True if successful.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            SpaceFileManagerException</span>
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">file_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_file_path</span><span class="p">(</span><span class="n">space_name</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Deleting file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Deleting file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; from space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
         <span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">FileUtils</span><span class="o">.</span><span class="n">remove_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Failed to delete file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
-                <span class="p">),</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;FILE_DELETE_FAILED&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">},</span>
-                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
-            <span class="p">)</span></div>
+            <span class="n">FileUtils</span><span class="o">.</span><span class="n">remove_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;File &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; successfully deleted from &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to delete file &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; from &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">raise</span></div>
 
 
 <div class="viewcode-block" id="SpaceFileManager.list_files">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_file_manager.SpaceFileManager.list_files">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">list_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">recursive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        List files in a space.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            space_name (str): Name of the space.</span>
-<span class="sd">            recursive (bool): Whether to list files recursively.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            List[str]: List of file paths (relative to space root).</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            SpaceFileManagerException</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Listing files in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39; (recursive=</span><span class="si">{</span><span class="n">recursive</span><span class="si">}</span><span class="s2">)&quot;</span>
-        <span class="p">)</span>
-
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">space_root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_space_manager</span><span class="o">.</span><span class="n">_get_space_path</span><span class="p">(</span><span class="n">space_name</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">list_directory</span><span class="p">(</span>
-                <span class="n">space_root</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span>
+            <span class="n">space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_space_manager</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="n">space_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">space</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39; not found.&quot;</span><span class="p">,</span>
+                    <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_NOT_FOUND&quot;</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">},</span>
+                <span class="p">)</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">list_directory</span><span class="p">(</span>
+                <span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span>
             <span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">SpaceFileManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to list files in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;LIST_FILES_FAILED&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;recursive&quot;</span><span class="p">:</span> <span class="n">recursive</span><span class="p">},</span>
-                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
-            <span class="p">)</span></div>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Listed files in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(recursive=</span><span class="si">{</span><span class="n">recursive</span><span class="si">}</span><span class="s2">).&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">files</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to list files in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="k">raise</span></div>
 </div>
 
 </pre></div>

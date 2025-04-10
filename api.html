@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Reference &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.3.0 documentation</title>
+  <title>API Reference &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=e259d695"></script>
+      <script src="_static/documentation_options.js?v=6c02275b"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -46,11 +46,13 @@
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage Guide</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager"><code class="docutils literal notranslate"><span class="pre">SpaceManager</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.count_spaces"><code class="docutils literal notranslate"><span class="pre">SpaceManager.count_spaces()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.create_directory"><code class="docutils literal notranslate"><span class="pre">SpaceManager.create_directory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.create_space"><code class="docutils literal notranslate"><span class="pre">SpaceManager.create_space()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.delete_space"><code class="docutils literal notranslate"><span class="pre">SpaceManager.delete_space()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.get_space_metadata"><code class="docutils literal notranslate"><span class="pre">SpaceManager.get_space_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.get_space"><code class="docutils literal notranslate"><span class="pre">SpaceManager.get_space()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.list_spaces"><code class="docutils literal notranslate"><span class="pre">SpaceManager.list_spaces()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.refresh_index"><code class="docutils literal notranslate"><span class="pre">SpaceManager.refresh_index()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.remove_directory"><code class="docutils literal notranslate"><span class="pre">SpaceManager.remove_directory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#darca_space_manager.space_manager.SpaceManager.space_exists"><code class="docutils literal notranslate"><span class="pre">SpaceManager.space_exists()</span></code></a></li>
 </ul>
 </li>
@@ -95,34 +97,29 @@
   <section id="module-darca_space_manager.space_manager">
 <span id="api-reference"></span><h1>API Reference<a class="headerlink" href="#module-darca_space_manager.space_manager" title="Link to this heading"></a></h1>
 <p>space_manager.py</p>
-<p>A local storage abstraction layer for managing logical spaces.
-Supports space creation, deletion, listing, and metadata tracking.</p>
-<p>This implementation uses the local filesystem and YAML metadata files.</p>
+<p>Manages logical storage spaces using the local filesystem.
+Supports hierarchical space creation, deletion, metadata tracking, and
+recursive discovery.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">darca_space_manager.space_manager.</span></span><span class="sig-name descname"><span class="pre">SpaceManager</span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Manages logical storage spaces and their metadata using local filesystem.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.count_spaces">
-<span class="sig-name descname"><span class="pre">count_spaces</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.count_spaces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.count_spaces" title="Link to this definition"></a></dt>
-<dd><p>Get the number of allocated spaces.</p>
-<dl class="simple">
-<dt>Returns:</dt><dd><p>int: Count of spaces.</p>
-</dd>
-</dl>
-</dd></dl>
+<dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.create_directory">
+<span class="sig-name descname"><span class="pre">create_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.create_directory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.create_directory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.create_space">
-<span class="sig-name descname"><span class="pre">create_space</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.create_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.create_space" title="Link to this definition"></a></dt>
-<dd><p>Allocate a new space and store internal metadata.</p>
+<span class="sig-name descname"><span class="pre">create_space</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.create_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.create_space" title="Link to this definition"></a></dt>
+<dd><p>Create a new space. Supports nested structure like ‘space1/subdir’.</p>
 <dl class="simple">
-<dt>Args:</dt><dd><p>name (str): Name of the space.</p>
+<dt>Args:</dt><dd><p>name (str): The name of the new space (must be unique).
+label (str): A label for filtering/categorization.
+parent_path (str): A path like ‘space1/subdir’, where the first
+part must be an existing space.</p>
 </dd>
-<dt>Returns:</dt><dd><p>bool: True if space created successfully.</p>
-</dd>
-<dt>Raises:</dt><dd><p>SpaceManagerException: If space already exists or creation fails.</p>
+<dt>Returns:</dt><dd><p>bool: True if the space was created successfully.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -130,52 +127,32 @@ Supports space creation, deletion, listing, and metadata tracking.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.delete_space">
 <span class="sig-name descname"><span class="pre">delete_space</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.delete_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.delete_space" title="Link to this definition"></a></dt>
-<dd><p>Delete a space and its metadata.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>name (str): Name of the space.</p>
-</dd>
-<dt>Returns:</dt><dd><p>bool: True if deletion succeeded.</p>
-</dd>
-<dt>Raises:</dt><dd><p>SpaceManagerException: If space or metadata deletion fails.</p>
-</dd>
-</dl>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.get_space_metadata">
-<span class="sig-name descname"><span class="pre">get_space_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.get_space_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.get_space_metadata" title="Link to this definition"></a></dt>
-<dd><p>Retrieve metadata associated with a space.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>name (str): Name of the space.</p>
-</dd>
-<dt>Returns:</dt><dd><p>dict: Metadata dictionary.</p>
-</dd>
-<dt>Raises:</dt><dd><p>SpaceManagerException: If metadata cannot be loaded.</p>
-</dd>
-</dl>
-</dd></dl>
+<dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.get_space">
+<span class="sig-name descname"><span class="pre">get_space</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.get_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.get_space" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.list_spaces">
-<span class="sig-name descname"><span class="pre">list_spaces</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.list_spaces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.list_spaces" title="Link to this definition"></a></dt>
-<dd><p>List all allocated spaces.</p>
-<dl class="simple">
-<dt>Returns:</dt><dd><p>List[str]: Names of all existing spaces.</p>
-</dd>
-</dl>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">list_spaces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label_filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.list_spaces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.list_spaces" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.refresh_index">
+<span class="sig-name descname"><span class="pre">refresh_index</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.refresh_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.refresh_index" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.remove_directory">
+<span class="sig-name descname"><span class="pre">remove_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.remove_directory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.remove_directory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManager.space_exists">
 <span class="sig-name descname"><span class="pre">space_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManager.space_exists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManager.space_exists" title="Link to this definition"></a></dt>
-<dd><p>Check if a space exists by name.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>name (str): Name of the space.</p>
-</dd>
-<dt>Returns:</dt><dd><p>bool: True if space exists.</p>
-</dd>
-</dl>
-</dd></dl>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -183,7 +160,6 @@ Supports space creation, deletion, listing, and metadata tracking.</p>
 <dt class="sig sig-object py" id="darca_space_manager.space_manager.SpaceManagerException">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">darca_space_manager.space_manager.</span></span><span class="sig-name descname"><span class="pre">SpaceManagerException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cause</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darca_space_manager/space_manager.html#SpaceManagerException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_manager.SpaceManagerException" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">DarcaException</span></code></p>
-<p>Custom exception for errors in the SpaceManager.</p>
 </dd></dl>
 
 <p id="module-darca_space_manager.space_file_manager">space_file_manager.py</p>
@@ -194,21 +170,10 @@ with automatic handling of YAML/JSON content types.</p>
 <dt class="sig sig-object py" id="darca_space_manager.space_file_manager.SpaceFileManager">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">darca_space_manager.space_file_manager.</span></span><span class="sig-name descname"><span class="pre">SpaceFileManager</span></span><a class="reference internal" href="_modules/darca_space_manager/space_file_manager.html#SpaceFileManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_file_manager.SpaceFileManager" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Manages file-level operations within a logical space.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="darca_space_manager.space_file_manager.SpaceFileManager.delete_file">
 <span class="sig-name descname"><span class="pre">delete_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_file_manager.html#SpaceFileManager.delete_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_file_manager.SpaceFileManager.delete_file" title="Link to this definition"></a></dt>
-<dd><p>Delete a file in a space.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>space_name (str): Name of the space.
-relative_path (str): Path relative to the space root.</p>
-</dd>
-<dt>Returns:</dt><dd><p>bool: True if successful.</p>
-</dd>
-<dt>Raises:</dt><dd><p>SpaceFileManagerException</p>
-</dd>
-</dl>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="darca_space_manager.space_file_manager.SpaceFileManager.file_exists">
@@ -217,51 +182,18 @@ relative_path (str): Path relative to the space root.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="darca_space_manager.space_file_manager.SpaceFileManager.get_file">
-<span class="sig-name descname"><span class="pre">get_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_file_manager.html#SpaceFileManager.get_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_file_manager.SpaceFileManager.get_file" title="Link to this definition"></a></dt>
-<dd><p>Get the ASCII content of a file. Returns raw text even
-for YAML/JSON files.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>space_name (str): Name of the space.
-relative_path (str): Path relative to the space root.</p>
-</dd>
-<dt>Returns:</dt><dd><p>str: The file content as ASCII text.</p>
-</dd>
-<dt>Raises:</dt><dd><p>SpaceFileManagerException</p>
-</dd>
-</dl>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">get_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_file_manager.html#SpaceFileManager.get_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_file_manager.SpaceFileManager.get_file" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="darca_space_manager.space_file_manager.SpaceFileManager.list_files">
 <span class="sig-name descname"><span class="pre">list_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_file_manager.html#SpaceFileManager.list_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_file_manager.SpaceFileManager.list_files" title="Link to this definition"></a></dt>
-<dd><p>List files in a space.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>space_name (str): Name of the space.
-recursive (bool): Whether to list files recursively.</p>
-</dd>
-<dt>Returns:</dt><dd><p>List[str]: List of file paths (relative to space root).</p>
-</dd>
-<dt>Raises:</dt><dd><p>SpaceFileManagerException</p>
-</dd>
-</dl>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="darca_space_manager.space_file_manager.SpaceFileManager.set_file">
 <span class="sig-name descname"><span class="pre">set_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/darca_space_manager/space_file_manager.html#SpaceFileManager.set_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darca_space_manager.space_file_manager.SpaceFileManager.set_file" title="Link to this definition"></a></dt>
-<dd><p>Write content to a file inside a space.
-Automatically serializes dicts to YAML or JSON based on extension.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>space_name (str): Name of the space.
-relative_path (str): Path relative to the space root.
-content (Union[str, dict]): Content to write.</p>
-</dd>
-<dt>Returns:</dt><dd><p>bool: True if successful.</p>
-</dd>
-<dt>Raises:</dt><dd><p>SpaceFileManagerException</p>
-</dd>
-</dl>
-</dd></dl>
+<dd></dd></dl>
 
 </dd></dl>
 

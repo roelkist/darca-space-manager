@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>darca_space_manager.space_manager &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.3.0 documentation</title>
+  <title>darca_space_manager.space_manager &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=e259d695"></script>
+      <script src="../../_static/documentation_options.js?v=6c02275b"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -73,33 +73,34 @@
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">space_manager.py</span>
 
-<span class="sd">A local storage abstraction layer for managing logical spaces.</span>
-<span class="sd">Supports space creation, deletion, listing, and metadata tracking.</span>
-
-<span class="sd">This implementation uses the local filesystem and YAML metadata files.</span>
+<span class="sd">Manages logical storage spaces using the local filesystem.</span>
+<span class="sd">Supports hierarchical space creation, deletion, metadata tracking, and</span>
+<span class="sd">recursive discovery.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">darca_exception.exception</span><span class="w"> </span><span class="kn">import</span> <span class="n">DarcaException</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">darca_file_utils.directory_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirectoryUtils</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">darca_file_utils.directory_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DirectoryUtils</span><span class="p">,</span>
+    <span class="n">DirectoryUtilsException</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">darca_file_utils.file_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileUtils</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">darca_log_facility.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">DarcaLogger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">darca_yaml.yaml_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">YamlUtils</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
 
-<span class="c1"># Initialize logger</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">DarcaLogger</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;space_manager&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
+
+<span class="n">METADATA_FILENAME</span> <span class="o">=</span> <span class="s2">&quot;metadata.yaml&quot;</span>
 
 
 <div class="viewcode-block" id="SpaceManagerException">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManagerException">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SpaceManagerException</span><span class="p">(</span><span class="n">DarcaException</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom exception for errors in the SpaceManager.&quot;&quot;&quot;</span>
-
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">error_code</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
@@ -113,177 +114,248 @@
 <div class="viewcode-block" id="SpaceManager">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SpaceManager</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Manages logical storage spaces and their metadata using local filesystem.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">space_dir</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">DIRECTORIES</span><span class="p">[</span><span class="s2">&quot;SPACE_DIR&quot;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">metadata_dir</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">DIRECTORIES</span><span class="p">[</span><span class="s2">&quot;METADATA_DIR&quot;</span><span class="p">]</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">ensure_directories_exist</span><span class="p">()</span>
+        <span class="n">dirs</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get_directories</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">space_dir</span> <span class="o">=</span> <span class="n">dirs</span><span class="p">[</span><span class="s2">&quot;SPACE_DIR&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_index</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refresh_index</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;✅ SpaceManager initialized and index refreshed.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">index_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">get_directories</span><span class="p">()[</span><span class="s2">&quot;METADATA_DIR&quot;</span><span class="p">],</span> <span class="s2">&quot;spaces_index.yaml&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">FileUtils</span><span class="o">.</span><span class="n">file_exist</span><span class="p">(</span><span class="n">index_file</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ℹ️ Index file not found. Initializing new index.&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;spaces&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;🔍 Loading index file.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">YamlUtils</span><span class="o">.</span><span class="n">load_yaml_file</span><span class="p">(</span><span class="n">index_file</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;❌ Failed to load index file.&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Failed to load spaces index.&quot;</span><span class="p">,</span>
+                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;INDEX_LOAD_FAILED&quot;</span><span class="p">,</span>
+                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">index_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">get_directories</span><span class="p">()[</span><span class="s2">&quot;METADATA_DIR&quot;</span><span class="p">],</span> <span class="s2">&quot;spaces_index.yaml&quot;</span>
+            <span class="p">)</span>
+            <span class="n">YamlUtils</span><span class="o">.</span><span class="n">save_yaml_file</span><span class="p">(</span><span class="n">index_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;💾 Index successfully saved.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;❌ Failed to save index.&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Failed to save spaces index.&quot;</span><span class="p">,</span>
+                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;INDEX_SAVE_FAILED&quot;</span><span class="p">,</span>
+                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+            <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">path</span><span class="p">,</span>
+            <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span>
+                <span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">&quot;subspaces&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_scan_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Scan using DirectoryUtils for all metadata.yaml files.&quot;&quot;&quot;</span>
+        <span class="n">discovered</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">all_files</span> <span class="o">=</span> <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">list_directory</span><span class="p">(</span>
+                <span class="n">directory</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">metadata_files</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">f</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">all_files</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">==</span> <span class="n">METADATA_FILENAME</span>
+            <span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">rel_path</span> <span class="ow">in</span> <span class="n">metadata_files</span><span class="p">:</span>
+                <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">rel_path</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">metadata</span> <span class="o">=</span> <span class="n">YamlUtils</span><span class="o">.</span><span class="n">load_yaml_file</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span>
+                        <span class="n">k</span> <span class="ow">in</span> <span class="n">metadata</span>
+                        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;created_at&quot;</span><span class="p">]</span>
+                    <span class="p">):</span>
+                        <span class="n">discovered</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;🔎 Discovered valid space: </span><span class="si">{</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> at &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;⚠️ Incomplete metadata in </span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">, skipping.&quot;</span>
+                        <span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;⚠️ Failed to load metadata in </span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+        <span class="k">except</span> <span class="n">DirectoryUtilsException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Failed to scan directory.&quot;</span><span class="p">,</span>
+                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;DIRECTORY_SCAN_FAILED&quot;</span><span class="p">,</span>
+                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Unexpected error during directory scan.&quot;</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="n">e</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">discovered</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_space_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space_dir</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Internal helper to resolve the absolute path of a space by name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">space</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; not found.&quot;</span><span class="p">,</span>
+                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_NOT_FOUND&quot;</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_metadata_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.yaml&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="SpaceManager.refresh_index">
+<a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.refresh_index">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">refresh_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;🔄 Refreshing space index via recursive discovery.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="s2">&quot;spaces&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scan_directory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_index</span><span class="p">()</span></div>
+
 
 <div class="viewcode-block" id="SpaceManager.space_exists">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.space_exists">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">space_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Check if a space exists by name.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            name (str): Name of the space.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            bool: True if space exists.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">exists</span> <span class="o">=</span> <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">directory_exist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_space_path</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checked if space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; exists: </span><span class="si">{</span><span class="n">exists</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">exists</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">space</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span> <span class="k">for</span> <span class="n">space</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="s2">&quot;spaces&quot;</span><span class="p">])</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Space exists check for &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">exists</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">exists</span></div>
 
 
-<div class="viewcode-block" id="SpaceManager.list_spaces">
-<a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.list_spaces">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">list_spaces</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        List all allocated spaces.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            List[str]: Names of all existing spaces.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Listing all allocated spaces.&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="SpaceManager.get_space">
+<a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.get_space">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_space</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">list_directory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space_dir</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">next</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="s2">&quot;spaces&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span><span class="p">),</span> <span class="kc">None</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to get space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Failed to list spaces.&quot;</span><span class="p">,</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;LIST_SPACES_FAILED&quot;</span><span class="p">,</span>
-                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+                <span class="s2">&quot;Failed to retrieve space.&quot;</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span> <span class="n">cause</span><span class="o">=</span><span class="n">e</span>
             <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="SpaceManager.count_spaces">
-<a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.count_spaces">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">count_spaces</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Get the number of allocated spaces.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            int: Count of spaces.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_spaces</span><span class="p">())</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total spaces allocated: </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">count</span></div>
-
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Generate metadata for a new space.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            name (str): Name of the space.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            dict: Metadata dictionary.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;local&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_space_path</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
-            <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;Z&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
-        <span class="p">}</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated metadata for space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">metadata</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">metadata</span>
-
 <div class="viewcode-block" id="SpaceManager.create_space">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.create_space">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">create_space</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_space</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">parent_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Allocate a new space and store internal metadata.</span>
+<span class="sd">        Create a new space. Supports nested structure like &#39;space1/subdir&#39;.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            name (str): Name of the space.</span>
+<span class="sd">            name (str): The name of the new space (must be unique).</span>
+<span class="sd">            label (str): A label for filtering/categorization.</span>
+<span class="sd">            parent_path (str): A path like &#39;space1/subdir&#39;, where the first</span>
+<span class="sd">            part must be an existing space.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            bool: True if space created successfully.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            SpaceManagerException: If space already exists or creation fails.</span>
+<span class="sd">            bool: True if the space was created successfully.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Creating space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">space_exists</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; already exists.&quot;</span><span class="p">,</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_ALREADY_EXISTS&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; already exists.&quot;</span><span class="p">,</span>
                 <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
             <span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">create_directory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_space_path</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="c1"># Determine base space and optional subpath</span>
+            <span class="k">if</span> <span class="n">parent_path</span><span class="p">:</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="n">parent_path</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+                <span class="n">base_space_name</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">relative_subpath</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="o">*</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                <span class="p">)</span>
+
+                <span class="n">base_space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="n">base_space_name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">base_space</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Base space &#39;</span><span class="si">{</span><span class="n">base_space_name</span><span class="si">}</span><span class="s2">&#39; not found in &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;path &#39;</span><span class="si">{</span><span class="n">parent_path</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                        <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;BASE_SPACE_NOT_FOUND&quot;</span><span class="p">,</span>
+                        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s2">&quot;base&quot;</span><span class="p">:</span> <span class="n">base_space_name</span><span class="p">,</span>
+                            <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">parent_path</span><span class="p">,</span>
+                        <span class="p">},</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># Final space path = base + relative path + new space name</span>
+                <span class="n">base_path</span> <span class="o">=</span> <span class="n">base_space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span>
+                <span class="n">destination_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_path</span><span class="p">,</span> <span class="n">relative_subpath</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Ensure the new path is within the base space</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">destination_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">base_path</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                        <span class="s2">&quot;Target path escapes base space boundaries.&quot;</span><span class="p">,</span>
+                        <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;PATH_ESCAPE_DETECTED&quot;</span><span class="p">,</span>
+                        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s2">&quot;base&quot;</span><span class="p">:</span> <span class="n">base_space_name</span><span class="p">,</span>
+                            <span class="s2">&quot;resolved_path&quot;</span><span class="p">:</span> <span class="n">destination_path</span><span class="p">,</span>
+                        <span class="p">},</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># Create intermediate folders if necessary</span>
+                <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">create_directory</span><span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">destination_path</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No parent path; create directly under root space directory</span>
+                <span class="n">destination_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space_dir</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+            <span class="c1"># Create the actual space directory</span>
+            <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">create_directory</span><span class="p">(</span><span class="n">destination_path</span><span class="p">)</span>
+
+            <span class="c1"># Write metadata</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_metadata</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">destination_path</span>
+            <span class="p">)</span>
+            <span class="n">metadata_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">destination_path</span><span class="p">,</span> <span class="n">METADATA_FILENAME</span><span class="p">)</span>
+            <span class="n">YamlUtils</span><span class="o">.</span><span class="n">save_yaml_file</span><span class="p">(</span><span class="n">metadata_path</span><span class="p">,</span> <span class="n">metadata</span><span class="p">)</span>
+
+            <span class="c1"># Refresh index</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">refresh_index</span><span class="p">()</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;✅ Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; created at &#39;</span><span class="si">{</span><span class="n">destination_path</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;with label &#39;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;❌ Failed to create space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; under &#39;</span><span class="si">{</span><span class="n">parent_path</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to create space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Failed to create space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; under &#39;</span><span class="si">{</span><span class="n">parent_path</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                <span class="p">),</span>
                 <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;CREATE_SPACE_FAILED&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
-                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
-            <span class="p">)</span>
-
-        <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_metadata</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">YamlUtils</span><span class="o">.</span><span class="n">save_yaml_file</span><span class="p">(</span>
-                <span class="n">file_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata_path</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
-                <span class="n">data</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
-                <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="c1"># Rollback directory creation</span>
-            <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">remove_directory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_space_path</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to store metadata for space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;METADATA_WRITE_FAILED&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
-                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
-            <span class="p">)</span>
-
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; successfully created.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">True</span></div>
-
-
-<div class="viewcode-block" id="SpaceManager.get_space_metadata">
-<a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.get_space_metadata">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_space_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Retrieve metadata associated with a space.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            name (str): Name of the space.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            dict: Metadata dictionary.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            SpaceManagerException: If metadata cannot be loaded.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Retrieving metadata for space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">space_exists</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; does not exist.&quot;</span><span class="p">,</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_NOT_FOUND&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
-            <span class="p">)</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">YamlUtils</span><span class="o">.</span><span class="n">load_yaml_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata_path</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to load metadata for space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;METADATA_READ_FAILED&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;parent_path&quot;</span><span class="p">:</span> <span class="n">parent_path</span><span class="p">},</span>
                 <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
             <span class="p">)</span></div>
 
@@ -291,51 +363,119 @@
 <div class="viewcode-block" id="SpaceManager.delete_space">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.delete_space">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">delete_space</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Delete a space and its metadata.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            name (str): Name of the space.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            bool: True if deletion succeeded.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            SpaceManagerException: If space or metadata deletion fails.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleting space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; and its metadata.&quot;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">space_exists</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">space</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Cannot delete non-existent space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_NOT_FOUND&quot;</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
+                <span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; not found.&quot;</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
             <span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">remove_directory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_space_path</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">remove_directory</span><span class="p">(</span><span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">refresh_index</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🗑️ Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; deleted.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to delete space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to delete space directory &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
-                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_DELETE_FAILED&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to delete space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
                 <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
                 <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpaceManager.list_spaces">
+<a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.list_spaces">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_spaces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label_filter</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;📃 Listing spaces (filter: </span><span class="si">{</span><span class="n">label_filter</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">s</span>
+                    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="s2">&quot;spaces&quot;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">label_filter</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="n">label_filter</span>
+                <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="s2">&quot;spaces&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;❌ Failed to list spaces.&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Failed to list spaces.&quot;</span><span class="p">,</span>
+                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;LIST_SPACES_FAILED&quot;</span><span class="p">,</span>
+                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpaceManager.create_directory">
+<a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.create_directory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="n">space_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">space</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Space not found for directory creation.&quot;</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">},</span>
             <span class="p">)</span>
 
-        <span class="n">metadata_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata_path</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">FileUtils</span><span class="o">.</span><span class="n">file_exist</span><span class="p">(</span><span class="n">metadata_path</span><span class="p">):</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">FileUtils</span><span class="o">.</span><span class="n">remove_file</span><span class="p">(</span><span class="n">metadata_path</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
-                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to delete metadata for space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
-                    <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;METADATA_DELETE_FAILED&quot;</span><span class="p">,</span>
-                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
-                    <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
-                <span class="p">)</span>
+        <span class="n">abs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span> <span class="n">relative_path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">abs_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Directory path escapes space boundaries.&quot;</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">},</span>
+            <span class="p">)</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; successfully deleted.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">True</span></div>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">create_directory</span><span class="p">(</span><span class="n">abs_path</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;📁 Created directory &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">abs_path</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;❌ Failed to create directory in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Failed to create directory.&quot;</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">},</span>
+                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpaceManager.remove_directory">
+<a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.remove_directory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="n">space_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">space</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Space not found for directory removal.&quot;</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">},</span>
+            <span class="p">)</span>
+
+        <span class="n">abs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span> <span class="n">relative_path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">abs_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Directory path escapes space boundaries.&quot;</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">},</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">remove_directory</span><span class="p">(</span><span class="n">abs_path</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;🗑️ Removed directory &#39;</span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;❌ Failed to remove directory in space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="s2">&quot;Failed to remove directory.&quot;</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">},</span>
+                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+            <span class="p">)</span></div>
 </div>
 
 </pre></div>
