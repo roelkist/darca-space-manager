@@ -4,6 +4,12 @@ space_manager.py
 Manages logical storage spaces using the local filesystem.
 Supports hierarchical space creation, deletion, metadata tracking, and
 recursive discovery.
+
+FIXME Mapping of space names to paths is not yet implemented.
+Create sub space fails
+FIXME Don't remove spaces that have child spaces. Force option.
+FIXME Add a way to rename spaces.
+FIXME Add a way to move spaces.
 """
 
 import datetime
