@@ -5,9 +5,7 @@ import tempfile
 
 import pytest
 
-from darca_space_manager.space_file_manager import SpaceFileManager
-from darca_space_manager.space_manager import SpaceManager
-
+from darca_space_manager import SpaceManager, SpaceFileManager, SpaceExecutor
 
 @pytest.fixture(scope="function")
 def temp_darca_env(monkeypatch):
@@ -31,3 +29,8 @@ def space_file_manager(temp_darca_env):
     Provides a fresh SpaceFileManager instance using the isolated temp config.
     """
     return SpaceFileManager()
+
+
+@pytest.fixture(scope="function")
+def space_executor(temp_darca_env):
+    return SpaceExecutor(use_shell=False)

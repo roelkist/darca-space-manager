@@ -57,7 +57,7 @@ class SpaceExecutor:
         check: bool = True,
         env: Optional[dict] = None,
         timeout: Optional[int] = 30,
-    ) -> "subprocess.CompletedProcess":
+    ) -> "DarcaExecutor.CompletedProcess":
         """
         Run a command within the specified space directory using DarcaExecutor.
 
@@ -77,6 +77,7 @@ class SpaceExecutor:
             SpaceExecutorException: If the space is not found, or if execution fails for any reason.
         """
         # 1. Resolve the space path
+        self._space_manager.refresh_index()
         space = self._space_manager.get_space(space_name)
         if not space:
             logger.error(f"Space '{space_name}' not found.")
