@@ -382,3 +382,62 @@ class SpaceManager:
                 metadata={"space": space_name, "path": relative_path},
                 cause=e,
             )
+
+    def get_directory_last_modified(self, name: str) -> float:
+        """
+        Return the 'last modified' timestamp of a space (directory), in seconds
+        since the Unix epoch (UTC). The directory's timestamp is the newest
+        (i.e., highest mtime) among all files it contains, recursively.
+        If no files exist, we fall back to the directory's own mtime.
+
+        Args:
+            name (str): The name of the space.
+
+        Returns:
+            float: The highest file modification timestamp (UTC) in the space,
+                   or the directory's own timestamp if no files are found.
+        """
+        space = self.get_space(name)
+        if not space:
+            raise SpaceManagerException(
+                message=f"Space '{name}' not found.",
+                error_code="SPACE_NOT_FOUND",
+                metadata={"space": name},
+            )
+
+        try:
+            # Recursively list all entries (files + subdirectories) within the space.
+            all_entries = DirectoryUtils.list_directory(space["path"], recursive=True)
+
+            # If no entries at all, just return the directory's own modification time.
+            if not all_entries:
+                return os.path.getmtime(space["path"])
+
+            latest_timestamp = 0.0
+            for entry in all_entries:
+                full_path = os.path.join(space["path"], entry)
+                
+                # We only consider files, not subdirectories.
+                if os.path.isfile(full_path):
+                    file_mtime = os.path.getmtime(full_path)
+                    if file_mtime > latest_timestamp:
+                        latest_timestamp = file_mtime
+
+            # If no files were found at all (all_entries might have been directories),
+            # again fall back to the directory's own mtime.
+            if latest_timestamp == 0.0:
+                return os.path.getmtime(space["path"])
+
+            return latest_timestamp
+
+        except Exception as e:
+            logger.error(
+                f"Failed to compute last modified time for space '{name}'.",
+                exc_info=True,
+            )
+            raise SpaceManagerException(
+                message=f"Error retrieving 'last modified' timestamp for space '{name}'.",
+                error_code="SPACE_DIR_MTIME_FAILED",
+                metadata={"space": name},
+                cause=e,
+            )

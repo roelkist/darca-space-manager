@@ -9,6 +9,7 @@ with automatic handling of YAML/JSON content types.
 import json
 import os
 from typing import List, Union
+import datetime 
 
 from darca_exception.exception import DarcaException
 from darca_file_utils.directory_utils import DirectoryUtils
@@ -237,3 +238,36 @@ class SpaceFileManager:
                 f"Failed to list files in space '{space_name}'.", exc_info=True
             )
             raise
+
+    def get_file_last_modified(self, space_name: str, relative_path: str) -> float:
+
+        # Use the class's file_exists method to confirm the file is present.
+        if not self.file_exists(space_name, relative_path):
+            raise SpaceFileManagerException(
+                message=(
+                    f"File '{relative_path}' does not exist in space '{space_name}'."
+                ),
+                error_code="FILE_NOT_FOUND",
+                metadata={"space": space_name, "file": relative_path},
+            )
+
+        # Now retrieve the actual file path for the os.path.getmtime call.
+        file_path = self._resolve_file_path(space_name, relative_path)
+
+        try:
+            return os.path.getmtime(file_path)
+        except Exception as e:
+            logger.error(
+                f"Failed to get last modified time for file '{relative_path}' "
+                f"in space '{space_name}'.",
+                exc_info=True,
+            )
+            raise SpaceFileManagerException(
+                message=(
+                    f"Error retrieving last modified time for file '{relative_path}' "
+                    f"in space '{space_name}'."
+                ),
+                error_code="FILE_MTIME_FAILED",
+                metadata={"space": space_name, "file": relative_path},
+                cause=e,
+            )
