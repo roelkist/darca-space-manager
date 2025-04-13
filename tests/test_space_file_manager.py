@@ -1,4 +1,7 @@
 # tests/test_space_file_manager.py
+import os
+from unittest.mock import patch
+
 import pytest
 from darca_file_utils.file_utils import FileUtils, FileUtilsException
 
@@ -174,3 +177,76 @@ def test_delete_file_failure(space_file_manager, monkeypatch):
 
     with pytest.raises(Exception, match="delete failed"):
         sfm.delete_file("delerr", "oops.txt")
+
+
+def test_get_file_last_modified_success(space_file_manager, space_manager):
+    """
+    Verify that get_file_last_modified returns a float timestamp
+    and matches the filesystem mtime.
+    """
+    space_name = "mtime_file_success"
+    space_manager.create_space(space_name)
+    file_name = "example.txt"
+
+    # Create a file in the space
+    space_file_manager.set_file(space_name, file_name, "Hello, world!")
+
+    # Retrieve actual filesystem mtime
+    space_path = space_manager.get_space(space_name)["path"]
+    file_path = os.path.join(space_path, file_name)
+    actual_mtime = os.path.getmtime(file_path)
+
+    # Call the method under test
+    reported_mtime = space_file_manager.get_file_last_modified(
+        space_name, file_name
+    )
+
+    assert isinstance(
+        reported_mtime, float
+    ), "Returned timestamp should be a float"
+    assert (
+        abs(reported_mtime - actual_mtime) < 0.0001
+    ), "Reported timestamp should be within a tiny"
+    " delta of the actual filesystem mtime."
+
+
+def test_get_file_last_modified_nonexistent_file(
+    space_file_manager, space_manager
+):
+    """
+    If the file doesn't exist, we expect a
+    SpaceFileManagerException with 'FILE_NOT_FOUND'.
+    """
+    space_name = "mtime_file_missing"
+    space_manager.create_space(space_name)
+
+    with pytest.raises(SpaceFileManagerException) as exc_info:
+        space_file_manager.get_file_last_modified(
+            space_name, "no_such_file.txt"
+        )
+
+    assert "FILE_NOT_FOUND" in str(exc_info.value)
+
+
+def test_get_file_last_modified_os_error(space_file_manager, space_manager):
+    """
+    Force an error when retrieving os.path.getmtime,
+    triggering the 'except Exception' block in get_file_last_modified.
+    """
+    space_name = "os_error_space"
+    file_name = "failing_file.txt"
+
+    # Create space and file so it definitely exists
+    space_manager.create_space(space_name)
+    space_file_manager.set_file(space_name, file_name, "Some content")
+
+    # Mock os.path.getmtime to raise an OSError (or any other exception)
+    with patch(
+        "os.path.getmtime", side_effect=OSError("Mocked getmtime error")
+    ):
+        with pytest.raises(SpaceFileManagerException) as exc_info:
+            space_file_manager.get_file_last_modified(space_name, file_name)
+
+    # Check that the error code matches what we expect
+    assert "FILE_MTIME_FAILED" in str(exc_info.value)
+    assert "Error retrieving last modified time" in str(exc_info.value)
