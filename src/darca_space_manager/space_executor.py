@@ -3,6 +3,7 @@ space_executor.py
 
 Allows executing commands *within* a given space directory using the
 darca-executor.
+FIXME: Jail the command to the space directory.
 """
 
 from typing import Dict, List, Optional, Union
