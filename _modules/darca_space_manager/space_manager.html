@@ -486,7 +486,9 @@
 
 <div class="viewcode-block" id="SpaceManager.get_directory_last_modified">
 <a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.get_directory_last_modified">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_directory_last_modified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_directory_last_modified</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return the &#39;last modified&#39; timestamp of a space (directory), in seconds</span>
 <span class="sd">        since the Unix epoch (UTC). The directory&#39;s timestamp is the newest</span>
@@ -509,6 +511,26 @@
             <span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Determine the target directory (base space or subdirectory)</span>
+            <span class="n">base_path</span> <span class="o">=</span> <span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">directory</span><span class="p">:</span>
+                <span class="n">target_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_path</span><span class="p">,</span> <span class="n">directory</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="c1"># Ensure the new path is within the base space</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">base_path</span><span class="p">,</span> <span class="n">target_path</span><span class="p">]</span>
+                <span class="p">)</span> <span class="o">!=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">([</span><span class="n">base_path</span><span class="p">]):</span>
+                    <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                        <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Subdirectory path escapes space boundaries.&quot;</span><span class="p">,</span>
+                        <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;PATH_ESCAPE_DETECTED&quot;</span><span class="p">,</span>
+                        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                            <span class="s2">&quot;requested_subdir&quot;</span><span class="p">:</span> <span class="n">directory</span><span class="p">,</span>
+                        <span class="p">},</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">target_path</span> <span class="o">=</span> <span class="n">base_path</span>
             <span class="c1"># Recursively list all entries (files + subdirectories)</span>
             <span class="c1"># within the space.</span>
             <span class="n">all_entries</span> <span class="o">=</span> <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">list_directory</span><span class="p">(</span>

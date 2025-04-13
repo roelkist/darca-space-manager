@@ -78,6 +78,7 @@
 <span class="sd">FIXME: Jail the command to the space directory.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">darca_exception.exception</span><span class="w"> </span><span class="kn">import</span> <span class="n">DarcaException</span>
@@ -137,6 +138,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">space_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">command</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">cwd</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">capture_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">check</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">env</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -155,6 +157,9 @@
 <span class="sd">            env (Optional[dict]): Environment variables to pass to the</span>
 <span class="sd">            subprocess.</span>
 <span class="sd">            timeout (Optional[int]): Timeout in seconds.</span>
+<span class="sd">            cwd (Optional[str]): An additional subdirectory path within the</span>
+<span class="sd">            space. This will be appended to the space&#39;s root path before</span>
+<span class="sd">            passing to DarcaExecutor as the working directory (cwd).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            subprocess.CompletedProcess: The result of the subprocess</span>
@@ -177,6 +182,20 @@
         <span class="n">space_path</span> <span class="o">=</span> <span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resolved space &#39;</span><span class="si">{</span><span class="n">space_name</span><span class="si">}</span><span class="s2">&#39; to path: </span><span class="si">{</span><span class="n">space_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
+        <span class="c1"># 1a. Combine &#39;cwd&#39; if provided, ensuring it doesn&#39;t escape the space</span>
+        <span class="n">final_cwd</span> <span class="o">=</span> <span class="n">space_path</span>
+        <span class="k">if</span> <span class="n">cwd</span><span class="p">:</span>
+            <span class="n">combined_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">space_path</span><span class="p">,</span> <span class="n">cwd</span><span class="p">)</span>
+            <span class="n">final_cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">combined_path</span><span class="p">)</span>
+            <span class="c1"># Use commonpath check to detect boundary escapes</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">space_path</span><span class="p">,</span> <span class="n">final_cwd</span><span class="p">]</span>
+            <span class="p">)</span> <span class="o">!=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">([</span><span class="n">space_path</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="n">SpaceExecutorException</span><span class="p">(</span>
+                    <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Subdirectory path escapes space boundaries.&quot;</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;requested_cwd&quot;</span><span class="p">:</span> <span class="n">cwd</span><span class="p">},</span>
+                <span class="p">)</span>
+
         <span class="c1"># 2. Invoke DarcaExecutor</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Executing command in space: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">space_name</span><span class="p">)</span>
@@ -184,7 +203,7 @@
                 <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">,</span>
                 <span class="n">capture_output</span><span class="o">=</span><span class="n">capture_output</span><span class="p">,</span>
                 <span class="n">check</span><span class="o">=</span><span class="n">check</span><span class="p">,</span>
-                <span class="n">cwd</span><span class="o">=</span><span class="n">space_path</span><span class="p">,</span>
+                <span class="n">cwd</span><span class="o">=</span><span class="n">final_cwd</span><span class="p">,</span>
                 <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">,</span>
                 <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
             <span class="p">)</span>
