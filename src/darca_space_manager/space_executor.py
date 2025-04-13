@@ -68,22 +68,21 @@ class SpaceExecutor:
         Args:
             space_name (str): Name of the managed space.
             command (List[str] | str): The command to execute. Must be a list
-                                       if use_shell=False, or a string if
-                                       use_shell=True.
+            if use_shell=False, or a string if use_shell=True.
             capture_output (bool): If True, captures stdout/stderr.
             check (bool): Raise an exception if the command exits with a
-                          non-zero code.
+            non-zero code.
             env (Optional[dict]): Environment variables to pass to the
-                                  subprocess.
+            subprocess.
             timeout (Optional[int]): Timeout in seconds.
 
         Returns:
             subprocess.CompletedProcess: The result of the subprocess
-                                         execution.
+            execution.
 
         Raises:
             SpaceExecutorException: If the space is not found, or if
-                                    execution fails for any reason.
+            execution fails for any reason.
         """
         # 1. Resolve the space path
         self._space_manager.refresh_index()

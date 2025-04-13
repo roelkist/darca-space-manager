@@ -218,7 +218,7 @@ The ``SpaceExecutor`` class enables **command execution** within a specific spac
 If the command fails, times out, or otherwise errors, a ``SpaceExecutorException`` is raised, containing metadata like the original command, return code, stdout, and stderr.
 
 Error Handling
--------------
+--------------
 
 All classes raise consistent exceptions with contextual data:
 
