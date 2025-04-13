@@ -431,6 +431,7 @@ def test_get_directory_last_modified_exception(space_manager):
         in str(exc_info.value)
     )
 
+
 def test_get_directory_last_modified_subdirectory_success(space_manager):
     """
     Create a space, add a subdirectory with a file, then call
@@ -455,13 +456,15 @@ def test_get_directory_last_modified_subdirectory_success(space_manager):
     )
     assert isinstance(subdir_mtime, float), "Should return a float"
     actual_file_mtime = os.path.getmtime(file_path)
-    assert abs(subdir_mtime - actual_file_mtime) < 0.1, (
-        "Should match file.txt's modification time."
-    )
+    assert (
+        abs(subdir_mtime - actual_file_mtime) < 0.1
+    ), "Should match file.txt's modification time."
+
 
 def test_get_directory_last_modified_subdirectory_no_files(space_manager):
     """
-    If the specified subdirectory has no files, we fall back to the subdir's own mtime.
+    If the specified subdirectory has no files, we fall back to the subdir's
+    own mtime.
     """
     space_name = "empty_subdir_mtime"
     space_manager.create_space(space_name)
@@ -475,9 +478,10 @@ def test_get_directory_last_modified_subdirectory_no_files(space_manager):
     )
     assert isinstance(subdir_mtime, float)
     actual_subdir_mtime = os.path.getmtime(empty_subdir_path)
-    assert abs(subdir_mtime - actual_subdir_mtime) < 0.1, (
-        "Should match the directory's own mtime if no files exist."
-    )
+    assert (
+        abs(subdir_mtime - actual_subdir_mtime) < 0.1
+    ), "Should match the directory's own mtime if no files exist."
+
 
 def test_get_directory_last_modified_subdirectory_escape(space_manager):
     """

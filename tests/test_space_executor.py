@@ -1,10 +1,10 @@
 # tests/test_space_executor.py
 
+import os
+import subprocess
 from unittest.mock import patch
 
 import pytest
-import os
-import subprocess
 
 from darca_space_manager.space_executor import SpaceExecutorException
 
@@ -75,6 +75,7 @@ def test_run_in_space_unexpected_exception(space_executor, space_manager):
         "VALUEERROR" not in str(exc_info.value).upper()
     )  # It's re-wrapped, but you can check cause if needed
 
+
 def test_run_in_space_with_cwd_success(space_executor, space_manager):
     """
     Create a space with a subdirectory. Then run a command in that subdirectory
@@ -89,10 +90,7 @@ def test_run_in_space_with_cwd_success(space_executor, space_manager):
 
     # We'll run a simple "ls" command in that subdir
     result = space_executor.run_in_space(
-        space_name,
-        command=["ls", "."],
-        cwd=subdir,
-        capture_output=True
+        space_name, command=["ls", "."], cwd=subdir, capture_output=True
     )
     assert result.returncode == 0
     # We can't precisely check the contents, but we know it executed in subdir
@@ -113,7 +111,7 @@ def test_run_in_space_with_cwd_escape(space_executor, space_manager):
             space_name,
             command=["ls", "."],
             cwd="../outside",
-            capture_output=True
+            capture_output=True,
         )
     assert "escapes space boundaries" in str(exc_info.value)
 
@@ -130,17 +128,14 @@ def test_run_in_space_with_cwd_no_subdir(space_executor, space_manager):
     # Mock the DarcaExecutor.run call to return a dummy CompletedProcess
     with patch.object(space_executor._executor, "run") as mock_run:
         mock_run.return_value = subprocess.CompletedProcess(
-            args=["ls", "."],
-            returncode=0,
-            stdout="mocked stdout",
-            stderr=""
+            args=["ls", "."], returncode=0, stdout="mocked stdout", stderr=""
         )
 
         result = space_executor.run_in_space(
             space_name,
             command=["ls", "."],
             cwd="this_subdir_does_not_exist",
-            capture_output=True
+            capture_output=True,
         )
 
         # Confirm the final_cwd we pass to run(...) is joined with space path
