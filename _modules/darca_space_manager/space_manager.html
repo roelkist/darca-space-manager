@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>darca_space_manager.space_manager &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.4.0 documentation</title>
+  <title>darca_space_manager.space_manager &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../../_static/documentation_options.js?v=1dd76d02"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -76,6 +76,12 @@
 <span class="sd">Manages logical storage spaces using the local filesystem.</span>
 <span class="sd">Supports hierarchical space creation, deletion, metadata tracking, and</span>
 <span class="sd">recursive discovery.</span>
+
+<span class="sd">FIXME Mapping of space names to paths is not yet implemented.</span>
+<span class="sd">Create sub space fails</span>
+<span class="sd">FIXME Don&#39;t remove spaces that have child spaces. Force option.</span>
+<span class="sd">FIXME Add a way to rename spaces.</span>
+<span class="sd">FIXME Add a way to move spaces.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
@@ -474,6 +480,76 @@
             <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
                 <span class="s2">&quot;Failed to remove directory.&quot;</span><span class="p">,</span>
                 <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">space_name</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">relative_path</span><span class="p">},</span>
+                <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpaceManager.get_directory_last_modified">
+<a class="viewcode-back" href="../../api.html#darca_space_manager.space_manager.SpaceManager.get_directory_last_modified">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_directory_last_modified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the &#39;last modified&#39; timestamp of a space (directory), in seconds</span>
+<span class="sd">        since the Unix epoch (UTC). The directory&#39;s timestamp is the newest</span>
+<span class="sd">        (i.e., highest mtime) among all files it contains, recursively.</span>
+<span class="sd">        If no files exist, we fall back to the directory&#39;s own mtime.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): The name of the space.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The highest file modification timestamp (UTC) in the space,</span>
+<span class="sd">                   or the directory&#39;s own timestamp if no files are found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">space</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; not found.&quot;</span><span class="p">,</span>
+                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_NOT_FOUND&quot;</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Recursively list all entries (files + subdirectories)</span>
+            <span class="c1"># within the space.</span>
+            <span class="n">all_entries</span> <span class="o">=</span> <span class="n">DirectoryUtils</span><span class="o">.</span><span class="n">list_directory</span><span class="p">(</span>
+                <span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+            <span class="c1"># If no entries at all, just return the directory&#39;s own</span>
+            <span class="c1"># modification time.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">all_entries</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span>
+
+            <span class="n">latest_timestamp</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">all_entries</span><span class="p">:</span>
+                <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span> <span class="n">entry</span><span class="p">)</span>
+
+                <span class="c1"># We only consider files, not subdirectories.</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">full_path</span><span class="p">):</span>
+                    <span class="n">file_mtime</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">file_mtime</span> <span class="o">&gt;</span> <span class="n">latest_timestamp</span><span class="p">:</span>
+                        <span class="n">latest_timestamp</span> <span class="o">=</span> <span class="n">file_mtime</span>
+
+            <span class="c1"># If no files were found at all (all_entries might have</span>
+            <span class="c1"># been directories),</span>
+            <span class="c1"># again fall back to the directory&#39;s own mtime.</span>
+            <span class="k">if</span> <span class="n">latest_timestamp</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">space</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span>
+
+            <span class="k">return</span> <span class="n">latest_timestamp</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to compute last modified time for space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SpaceManagerException</span><span class="p">(</span>
+                <span class="n">message</span><span class="o">=</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Error retrieving &#39;last modified&#39; timestamp &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;for space &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                <span class="p">),</span>
+                <span class="n">error_code</span><span class="o">=</span><span class="s2">&quot;SPACE_DIR_MTIME_FAILED&quot;</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
                 <span class="n">cause</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
             <span class="p">)</span></div>
 </div>

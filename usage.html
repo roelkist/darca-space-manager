@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Usage Guide &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.4.0 documentation</title>
+  <title>Usage Guide &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=6c02275b"></script>
+      <script src="_static/documentation_options.js?v=1dd76d02"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -49,6 +49,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#spaces-overview">Spaces Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#spacemanager">SpaceManager</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#spacefilemanager">SpaceFileManager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#timestamp-retrieval">Timestamp Retrieval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#spaceexecutor">SpaceExecutor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#error-handling">Error Handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#environment-configuration">Environment Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#directory-layout">Directory Layout</a></li>
@@ -84,18 +86,26 @@
              
   <section id="usage-guide">
 <h1>Usage Guide<a class="headerlink" href="#usage-guide" title="Link to this heading"></a></h1>
-<p>The <cite>darca-space-manager</cite> module provides tools to manage logical storage “spaces” on the local filesystem. These spaces support hierarchical structure, metadata tracking, and file-level access using YAML/JSON-aware operations.</p>
-<p>This guide covers both <cite>SpaceManager</cite> and <cite>SpaceFileManager</cite> usage.</p>
+<p>The darca-space-manager module provides tools to manage logical storage “spaces” on the local filesystem. These spaces support hierarchical structure, metadata tracking, file-level access using YAML/JSON-aware operations, <strong>timestamp retrieval</strong>, and <strong>command execution</strong> inside a space.</p>
+<p>This guide covers:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#space-manager"><span class="std std-ref">SpaceManager</span></a></p></li>
+<li><p><a class="reference internal" href="#space-file-manager"><span class="std std-ref">SpaceFileManager</span></a></p></li>
+<li><p><a class="reference internal" href="#space-timestamps"><span class="std std-ref">Timestamp Retrieval</span></a></p></li>
+<li><p><a class="reference internal" href="#space-executor"><span class="std std-ref">SpaceExecutor</span></a></p></li>
+</ul>
 <nav class="contents local" id="contents">
 <ul class="simple">
 <li><p><a class="reference internal" href="#installation" id="id1">Installation</a></p></li>
 <li><p><a class="reference internal" href="#spaces-overview" id="id2">Spaces Overview</a></p></li>
 <li><p><a class="reference internal" href="#spacemanager" id="id3">SpaceManager</a></p></li>
 <li><p><a class="reference internal" href="#spacefilemanager" id="id4">SpaceFileManager</a></p></li>
-<li><p><a class="reference internal" href="#error-handling" id="id5">Error Handling</a></p></li>
-<li><p><a class="reference internal" href="#environment-configuration" id="id6">Environment Configuration</a></p></li>
-<li><p><a class="reference internal" href="#directory-layout" id="id7">Directory Layout</a></p></li>
-<li><p><a class="reference internal" href="#final-notes" id="id8">Final Notes</a></p></li>
+<li><p><a class="reference internal" href="#timestamp-retrieval" id="id5">Timestamp Retrieval</a></p></li>
+<li><p><a class="reference internal" href="#spaceexecutor" id="id6">SpaceExecutor</a></p></li>
+<li><p><a class="reference internal" href="#error-handling" id="id7">Error Handling</a></p></li>
+<li><p><a class="reference internal" href="#environment-configuration" id="id8">Environment Configuration</a></p></li>
+<li><p><a class="reference internal" href="#directory-layout" id="id9">Directory Layout</a></p></li>
+<li><p><a class="reference internal" href="#final-notes" id="id10">Final Notes</a></p></li>
 </ul>
 </nav>
 <section id="installation">
@@ -106,24 +116,25 @@
 </section>
 <section id="spaces-overview">
 <h2><a class="toc-backref" href="#id2" role="doc-backlink">Spaces Overview</a><a class="headerlink" href="#spaces-overview" title="Link to this heading"></a></h2>
-<p>A “space” is a directory with a metadata file (<cite>metadata.yaml</cite>) that is automatically indexed and managed.</p>
-<p>You can create nested spaces such as <cite>project/2025/reports</cite>, track them with labels, and safely manipulate files within them.</p>
+<p>A “space” is a directory with a metadata file (<code class="docutils literal notranslate"><span class="pre">metadata.yaml</span></code>) that is automatically indexed and managed.</p>
+<p>You can create nested spaces (e.g. <code class="docutils literal notranslate"><span class="pre">project/2025/reports</span></code>), assign labels, and safely manipulate files within them.</p>
 </section>
 <section id="spacemanager">
-<h2><a class="toc-backref" href="#id3" role="doc-backlink">SpaceManager</a><a class="headerlink" href="#spacemanager" title="Link to this heading"></a></h2>
-<p>The <cite>SpaceManager</cite> handles:</p>
+<span id="space-manager"></span><h2><a class="toc-backref" href="#id3" role="doc-backlink">SpaceManager</a><a class="headerlink" href="#spacemanager" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">SpaceManager</span></code> handles:</p>
 <ul class="simple">
 <li><p>Creating and deleting spaces (flat or nested)</p></li>
 <li><p>Listing spaces with optional label filtering</p></li>
 <li><p>Accessing space metadata</p></li>
 <li><p>Creating/removing subdirectories inside a space</p></li>
+<li><p><strong>Retrieving a space’s last modified timestamp</strong> (new feature)</p></li>
 </ul>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager.space_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpaceManager</span>
 
 <span class="n">manager</span> <span class="o">=</span> <span class="n">SpaceManager</span><span class="p">()</span>
 </pre></div>
 </div>
-<p><strong>Creating a Space:</strong></p>
+<p><strong>Creating a Space</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a root-level space</span>
 <span class="n">manager</span><span class="o">.</span><span class="n">create_space</span><span class="p">(</span><span class="s2">&quot;projects&quot;</span><span class="p">)</span>
 
@@ -131,53 +142,53 @@
 <span class="n">manager</span><span class="o">.</span><span class="n">create_space</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span> <span class="n">parent_path</span><span class="o">=</span><span class="s2">&quot;projects/2025&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Checking Space Existence:</strong></p>
+<p><strong>Checking Space Existence</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">exists</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">space_exists</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Listing Spaces:</strong></p>
+<p><strong>Listing Spaces</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">all_spaces</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">list_spaces</span><span class="p">()</span>
 
 <span class="c1"># Filter by label</span>
 <span class="n">pdf_spaces</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">list_spaces</span><span class="p">(</span><span class="n">label_filter</span><span class="o">=</span><span class="s2">&quot;pdf&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Accessing Metadata:</strong></p>
+<p><strong>Accessing Metadata</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">metadata</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">],</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span>
 </pre></div>
 </div>
-<p><strong>Creating a Directory Inside a Space:</strong></p>
+<p><strong>Creating a Directory Inside a Space</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">manager</span><span class="o">.</span><span class="n">create_directory</span><span class="p">(</span><span class="s2">&quot;projects&quot;</span><span class="p">,</span> <span class="s2">&quot;2025/data/charts&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Removing a Directory:</strong></p>
+<p><strong>Removing a Directory</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">manager</span><span class="o">.</span><span class="n">remove_directory</span><span class="p">(</span><span class="s2">&quot;projects&quot;</span><span class="p">,</span> <span class="s2">&quot;2025/data/charts&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Deleting a Space:</strong></p>
+<p><strong>Deleting a Space</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">manager</span><span class="o">.</span><span class="n">delete_space</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Space Index Refresh:</strong></p>
+<p><strong>Space Index Refresh</strong></p>
 <p>Spaces are auto-indexed on init and after any mutation, but you can trigger it manually:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">manager</span><span class="o">.</span><span class="n">refresh_index</span><span class="p">()</span>
 </pre></div>
 </div>
 </section>
 <section id="spacefilemanager">
-<h2><a class="toc-backref" href="#id4" role="doc-backlink">SpaceFileManager</a><a class="headerlink" href="#spacefilemanager" title="Link to this heading"></a></h2>
-<p>The <cite>SpaceFileManager</cite> allows file-level operations inside a named space, with support for structured data formats.</p>
+<span id="space-file-manager"></span><h2><a class="toc-backref" href="#id4" role="doc-backlink">SpaceFileManager</a><a class="headerlink" href="#spacefilemanager" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">SpaceFileManager</span></code> provides file-level operations inside a named space, with support for structured YAML/JSON data.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager.space_file_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpaceFileManager</span>
 
 <span class="n">file_mgr</span> <span class="o">=</span> <span class="n">SpaceFileManager</span><span class="p">()</span>
 </pre></div>
 </div>
-<p><strong>Writing Files (Text):</strong></p>
+<p><strong>Writing Files (Text)</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">file_mgr</span><span class="o">.</span><span class="n">set_file</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="s2">&quot;summary.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;Quarterly Report Summary&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Writing Files (YAML / JSON):</strong></p>
+<p><strong>Writing Files (YAML / JSON)</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML from dict</span>
 <span class="n">file_mgr</span><span class="o">.</span><span class="n">set_file</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="s2">&quot;config.yaml&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 
@@ -185,7 +196,7 @@
 <span class="n">file_mgr</span><span class="o">.</span><span class="n">set_file</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="s2">&quot;data.json&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]})</span>
 </pre></div>
 </div>
-<p><strong>Reading Files:</strong></p>
+<p><strong>Reading Files</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Read raw text</span>
 <span class="n">txt</span> <span class="o">=</span> <span class="n">file_mgr</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="s2">&quot;summary.txt&quot;</span><span class="p">)</span>
 
@@ -193,52 +204,90 @@
 <span class="n">config</span> <span class="o">=</span> <span class="n">file_mgr</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="s2">&quot;config.yaml&quot;</span><span class="p">,</span> <span class="n">load</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Listing Files:</strong></p>
+<p><strong>Listing Files</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">files</span> <span class="o">=</span> <span class="n">file_mgr</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">)</span>
 <span class="n">nested_files</span> <span class="o">=</span> <span class="n">file_mgr</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Checking File Existence:</strong></p>
+<p><strong>Checking File Existence</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">file_mgr</span><span class="o">.</span><span class="n">file_exists</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="s2">&quot;summary.txt&quot;</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Exists!&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Deleting Files:</strong></p>
+<p><strong>Deleting Files</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">file_mgr</span><span class="o">.</span><span class="n">delete_file</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="s2">&quot;summary.txt&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
+<section id="timestamp-retrieval">
+<span id="space-timestamps"></span><h2><a class="toc-backref" href="#id5" role="doc-backlink">Timestamp Retrieval</a><a class="headerlink" href="#timestamp-retrieval" title="Link to this heading"></a></h2>
+<p>The library allows retrieving last modified timestamps for both <strong>files</strong> (via <code class="docutils literal notranslate"><span class="pre">SpaceFileManager</span></code>) and <strong>spaces</strong> (via <code class="docutils literal notranslate"><span class="pre">SpaceManager</span></code>).</p>
+<p><strong>File-Level Timestamps</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the last modified time (Unix epoch float) of a file in a space</span>
+<span class="n">mtime</span> <span class="o">=</span> <span class="n">file_mgr</span><span class="o">.</span><span class="n">get_file_last_modified</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="s2">&quot;summary.txt&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Last modified (seconds):&quot;</span><span class="p">,</span> <span class="n">mtime</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Space-Level Timestamps</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the last modified time of the entire space,</span>
+<span class="c1"># based on the newest file within it (falls back to directory&#39;s own mtime).</span>
+<span class="n">space_mtime</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">get_directory_last_modified</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Space last modified:&quot;</span><span class="p">,</span> <span class="n">space_mtime</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="spaceexecutor">
+<span id="space-executor"></span><h2><a class="toc-backref" href="#id6" role="doc-backlink">SpaceExecutor</a><a class="headerlink" href="#spaceexecutor" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">SpaceExecutor</span></code> class enables <strong>command execution</strong> within a specific space directory, using the <cite>darca-executor</cite> under the hood.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager.space_executor</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpaceExecutor</span>
+
+<span class="n">executor</span> <span class="o">=</span> <span class="n">SpaceExecutor</span><span class="p">(</span><span class="n">use_shell</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Running Commands in a Space</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run a command in an existing space &#39;reports&#39;</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">run_in_space</span><span class="p">(</span><span class="s2">&quot;reports&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;ls&quot;</span><span class="p">,</span> <span class="s2">&quot;-la&quot;</span><span class="p">])</span>
+
+<span class="c1"># The result is a standard subprocess.CompletedProcess object</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Return code:&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;STDOUT:&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;STDERR:&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the command fails, times out, or otherwise errors, a <code class="docutils literal notranslate"><span class="pre">SpaceExecutorException</span></code> is raised, containing metadata like the original command, return code, stdout, and stderr.</p>
+</section>
 <section id="error-handling">
-<h2><a class="toc-backref" href="#id5" role="doc-backlink">Error Handling</a><a class="headerlink" href="#error-handling" title="Link to this heading"></a></h2>
-<p>Both <cite>SpaceManager</cite> and <cite>SpaceFileManager</cite> raise consistent exceptions:</p>
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Error Handling</a><a class="headerlink" href="#error-handling" title="Link to this heading"></a></h2>
+<p>All classes raise consistent exceptions with contextual data:</p>
 <ul class="simple">
-<li><p><cite>SpaceManagerException</cite></p></li>
-<li><p><cite>SpaceFileManagerException</cite></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SpaceManagerException</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SpaceFileManagerException</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SpaceExecutorException</span></code></p></li>
 </ul>
-<p>These exceptions include error codes and contextual metadata:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager.space_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpaceManagerException</span>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">darca_space_manager.space_executor</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpaceExecutorException</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="n">manager</span><span class="o">.</span><span class="n">get_space</span><span class="p">(</span><span class="s2">&quot;nonexistent&quot;</span><span class="p">)</span>
-<span class="k">except</span> <span class="n">SpaceManagerException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">executor</span><span class="o">.</span><span class="n">run_in_space</span><span class="p">(</span><span class="s2">&quot;nonexistent&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;ls&quot;</span><span class="p">])</span>
+<span class="k">except</span> <span class="n">SpaceExecutorException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">error_code</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
 <section id="environment-configuration">
-<h2><a class="toc-backref" href="#id6" role="doc-backlink">Environment Configuration</a><a class="headerlink" href="#environment-configuration" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Environment Configuration</a><a class="headerlink" href="#environment-configuration" title="Link to this heading"></a></h2>
 <p>By default, data is stored under:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>~/.local/share/darca_space/
 </pre></div>
 </div>
-<p>You can override this using the <cite>DARCA_SPACE_BASE</cite> environment variable:</p>
+<p>You can override this using the <code class="docutils literal notranslate"><span class="pre">DARCA_SPACE_BASE</span></code> environment variable:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">DARCA_SPACE_BASE</span><span class="o">=</span>/custom/path/to/storage
 </pre></div>
 </div>
 </section>
 <section id="directory-layout">
-<h2><a class="toc-backref" href="#id7" role="doc-backlink">Directory Layout</a><a class="headerlink" href="#directory-layout" title="Link to this heading"></a></h2>
-<p>A typical layout under the hood looks like this:</p>
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Directory Layout</a><a class="headerlink" href="#directory-layout" title="Link to this heading"></a></h2>
+<p>A typical layout:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>~/.local/share/darca_space/
 ├── metadata/
 │   └── spaces_index.yaml
@@ -254,12 +303,14 @@
 </div>
 </section>
 <section id="final-notes">
-<h2><a class="toc-backref" href="#id8" role="doc-backlink">Final Notes</a><a class="headerlink" href="#final-notes" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Final Notes</a><a class="headerlink" href="#final-notes" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>All paths and files are validated to remain within their space boundaries</p></li>
-<li><p>YAML and JSON files are safely parsed and saved</p></li>
-<li><p>Metadata is automatically refreshed and indexed</p></li>
-<li><p>Exceptions include structured context for better debugging</p></li>
+<li><p>All paths and files are validated to remain within their space boundaries.</p></li>
+<li><p>YAML and JSON files are safely parsed and saved.</p></li>
+<li><p>Metadata is automatically refreshed and indexed.</p></li>
+<li><p>Timestamp utilities let you check when files or entire spaces were last modified.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SpaceExecutor</span></code> provides an easy way to run commands within a space, capturing output and error data.</p></li>
+<li><p>Exceptions include structured context for better debugging.</p></li>
 </ul>
 </section>
 </section>

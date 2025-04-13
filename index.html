@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to darca-space-manager’s documentation! &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.4.0 documentation</title>
+  <title>Welcome to darca-space-manager’s documentation! &mdash; DARCA&#39;s storage abstraction for logical spaces. 0.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=6c02275b"></script>
+      <script src="_static/documentation_options.js?v=1dd76d02"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -137,6 +137,7 @@ Each space has its own metadata and supports file-level operations such as readi
 <h2>📂 Project Layout<a class="headerlink" href="#project-layout" title="Link to this heading"></a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>darca_space_manager/
 ├── config.py
+├── space_executor.py
 ├── space_file_manager.py
 ├── space_manager.py
 └── __version__.py
@@ -181,6 +182,8 @@ See <a class="reference external" href="https://github.com/roelkist/darca-space-
 <li class="toctree-l2"><a class="reference internal" href="usage.html#spaces-overview">Spaces Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#spacemanager">SpaceManager</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#spacefilemanager">SpaceFileManager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#timestamp-retrieval">Timestamp Retrieval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#spaceexecutor">SpaceExecutor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#error-handling">Error Handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#environment-configuration">Environment Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#directory-layout">Directory Layout</a></li>
@@ -192,6 +195,8 @@ See <a class="reference external" href="https://github.com/roelkist/darca-space-
 <li class="toctree-l2"><a class="reference internal" href="api.html#darca_space_manager.space_manager.SpaceManagerException"><code class="docutils literal notranslate"><span class="pre">SpaceManagerException</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#darca_space_manager.space_file_manager.SpaceFileManager"><code class="docutils literal notranslate"><span class="pre">SpaceFileManager</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#darca_space_manager.space_file_manager.SpaceFileManagerException"><code class="docutils literal notranslate"><span class="pre">SpaceFileManagerException</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#darca_space_manager.space_executor.SpaceExecutor"><code class="docutils literal notranslate"><span class="pre">SpaceExecutor</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#darca_space_manager.space_executor.SpaceExecutorException"><code class="docutils literal notranslate"><span class="pre">SpaceExecutorException</span></code></a></li>
 </ul>
 </li>
 </ul>
