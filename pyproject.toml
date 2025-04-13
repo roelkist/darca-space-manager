@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "darca-space-manager"
-version = "0.5.0"
+version = "0.5.1"
 description = "Storage abstraction layer for managing logical spaces."
 authors = ["Roel Kist <roel.kist@gmail.com>"]
 license = "LICENSE"
