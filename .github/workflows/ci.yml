@@ -56,9 +56,24 @@ jobs:
           name: sphinx-docs-${{ matrix.python-version }}
           path: docs/build/html/
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/build/html
+          deploy:
+            # This job will run only after all ci matrix jobs succeed
+            needs: [ci]
+            runs-on: ubuntu-latest
+            steps:
+              - name: Checkout Repository
+                uses: actions/checkout@v4
+        
+              # Download docs artifact from whichever Python version you want to deploy
+              - name: Download docs artifact (Python 3.12 here)
+                uses: actions/download-artifact@v4
+                with:
+                  name: sphinx-docs-3.12
+                  path: docs/build/html
+        
+              - name: Deploy to GitHub Pages
+                uses: peaceiris/actions-gh-pages@v4
+                with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  publish_dir: docs/build/html     
 
