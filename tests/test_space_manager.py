@@ -2,8 +2,9 @@
 
 import os
 import time
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from darca_space_manager.space_manager import (
     SpaceManagerException,
@@ -292,10 +293,11 @@ def test_get_space_path_success(space_manager):
     path = space_manager._get_space_path("pathtest")
     assert os.path.basename(path) == "pathtest"
 
+
 def test_get_directory_last_modified_empty(space_manager):
     """
-    If the space is empty (no files at all), we expect the method to fall back 
-    to the directory's own mtime. Just ensure it doesn't raise an error and 
+    If the space is empty (no files at all), we expect the method to fall back
+    to the directory's own mtime. Just ensure it doesn't raise an error and
     returns a float.
     """
     space_name = "empty_mtime_space"
@@ -307,7 +309,8 @@ def test_get_directory_last_modified_empty(space_manager):
 
 def test_get_directory_last_modified_with_files(space_manager):
     """
-    If the space has files, the method should return the newest file's timestamp.
+    If the space has files, the method should return the newest
+    file's timestamp.
     """
     space_name = "files_mtime_space"
     space_manager.create_space(space_name)
@@ -336,9 +339,10 @@ def test_get_directory_last_modified_with_files(space_manager):
     # Check method
     dir_mtime = space_manager.get_directory_last_modified(space_name)
     assert isinstance(dir_mtime, float), "Should return a float"
-    assert dir_mtime == pytest.approx(file2_mtime, abs=0.001), (
-        "Directory last modified should match the newest file (file2)."
-    )
+    assert dir_mtime == pytest.approx(
+        file2_mtime, abs=0.001
+    ), "Directory last modified should match the newest file (file2)."
+
 
 def test_get_directory_last_modified_nonexistent_space(space_manager):
     """
@@ -348,9 +352,10 @@ def test_get_directory_last_modified_nonexistent_space(space_manager):
         space_manager.get_directory_last_modified("no_such_space")
     assert "SPACE_NOT_FOUND" in str(exc_info.value)
 
+
 def test_get_directory_last_modified_no_entries(space_manager):
     """
-    Force DirectoryUtils.list_directory to return an empty list, 
+    Force DirectoryUtils.list_directory to return an empty list,
     ensuring we hit the line:
         if not all_entries:
             return os.path.getmtime(space["path"])
@@ -359,11 +364,16 @@ def test_get_directory_last_modified_no_entries(space_manager):
     space_manager.create_space(space_name)
 
     # Mock list_directory to always return an empty list
-    with patch("darca_file_utils.directory_utils.DirectoryUtils.list_directory", return_value=[]):
+    with patch(
+        "darca_file_utils.directory_utils.DirectoryUtils.list_directory",
+        return_value=[],
+    ):
         mtime = space_manager.get_directory_last_modified(space_name)
 
     # We expect a float (the directory's own mtime)
-    assert isinstance(mtime, float), "Should return a float for an empty directory."
+    assert isinstance(
+        mtime, float
+    ), "Should return a float for an empty directory."
     # Optionally check that mtime matches the actual directory's mtime
     dir_path = space_manager.get_space(space_name)["path"]
     assert abs(mtime - os.path.getmtime(dir_path)) < 0.0001
@@ -380,7 +390,9 @@ def test_get_directory_last_modified_only_subdirs_no_files(space_manager):
     space_path = space_manager.get_space(space_name)["path"]
 
     # Mock DirectoryUtils.list_directory to return subdirectories (no files)
-    with patch("darca_file_utils.directory_utils.DirectoryUtils.list_directory") as mock_list:
+    with patch(
+        "darca_file_utils.directory_utils.DirectoryUtils.list_directory"
+    ) as mock_list:
         mock_list.return_value = ["sub1", "sub2", "sub2/nested"]
 
         dir_mtime = space_manager.get_directory_last_modified(space_name)
@@ -388,15 +400,16 @@ def test_get_directory_last_modified_only_subdirs_no_files(space_manager):
     assert isinstance(dir_mtime, float), "Should return a float timestamp."
 
     actual_mtime = os.path.getmtime(space_path)
-    assert abs(dir_mtime - actual_mtime) < 0.0001, (
-        "Expected the directory's own mtime since no files exist."
-    )
+    assert (
+        abs(dir_mtime - actual_mtime) < 0.0001
+    ), "Expected the directory's own mtime since no files exist."
+
 
 def test_get_directory_last_modified_exception(space_manager):
     """
-    Force an error inside get_directory_last_modified by mocking 
+    Force an error inside get_directory_last_modified by mocking
     DirectoryUtils.list_directory to raise an exception, ensuring we hit:
-    
+
         except Exception as e:
             logger.error(...)
             raise SpaceManagerException(...)
@@ -404,10 +417,16 @@ def test_get_directory_last_modified_exception(space_manager):
     space_name = "error_space"
     space_manager.create_space(space_name)
 
-    with patch("darca_file_utils.directory_utils.DirectoryUtils.list_directory", side_effect=OSError("Mocked error")):
+    with patch(
+        "darca_file_utils.directory_utils.DirectoryUtils.list_directory",
+        side_effect=OSError("Mocked error"),
+    ):
         with pytest.raises(SpaceManagerException) as exc_info:
             space_manager.get_directory_last_modified(space_name)
 
     # Confirm the raised exception includes the expected code/message
     assert "SPACE_DIR_MTIME_FAILED" in str(exc_info.value)
-    assert f"Error retrieving 'last modified' timestamp for space '{space_name}'" in str(exc_info.value)
+    assert (
+        f"Error retrieving 'last modified' timestamp for space '{space_name}'"
+        in str(exc_info.value)
+    )

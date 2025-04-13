@@ -406,24 +406,29 @@ class SpaceManager:
             )
 
         try:
-            # Recursively list all entries (files + subdirectories) within the space.
-            all_entries = DirectoryUtils.list_directory(space["path"], recursive=True)
+            # Recursively list all entries (files + subdirectories)
+            # within the space.
+            all_entries = DirectoryUtils.list_directory(
+                space["path"], recursive=True
+            )
 
-            # If no entries at all, just return the directory's own modification time.
+            # If no entries at all, just return the directory's own
+            # modification time.
             if not all_entries:
                 return os.path.getmtime(space["path"])
 
             latest_timestamp = 0.0
             for entry in all_entries:
                 full_path = os.path.join(space["path"], entry)
-                
+
                 # We only consider files, not subdirectories.
                 if os.path.isfile(full_path):
                     file_mtime = os.path.getmtime(full_path)
                     if file_mtime > latest_timestamp:
                         latest_timestamp = file_mtime
 
-            # If no files were found at all (all_entries might have been directories),
+            # If no files were found at all (all_entries might have
+            # been directories),
             # again fall back to the directory's own mtime.
             if latest_timestamp == 0.0:
                 return os.path.getmtime(space["path"])
@@ -436,7 +441,10 @@ class SpaceManager:
                 exc_info=True,
             )
             raise SpaceManagerException(
-                message=f"Error retrieving 'last modified' timestamp for space '{name}'.",
+                message=(
+                    f"Error retrieving 'last modified' timestamp "
+                    f"for space '{name}'."
+                ),
                 error_code="SPACE_DIR_MTIME_FAILED",
                 metadata={"space": name},
                 cause=e,

@@ -5,7 +5,8 @@ import tempfile
 
 import pytest
 
-from darca_space_manager import SpaceManager, SpaceFileManager, SpaceExecutor
+from darca_space_manager import SpaceExecutor, SpaceFileManager, SpaceManager
+
 
 @pytest.fixture(scope="function")
 def temp_darca_env(monkeypatch):

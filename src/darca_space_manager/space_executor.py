@@ -1,18 +1,17 @@
 """
 space_executor.py
 
-Allows executing commands *within* a given space directory using the darca-executor.
+Allows executing commands *within* a given space directory using the
+darca-executor.
 """
 
-import os
-from typing import List, Union, Optional, Dict
+from typing import Dict, List, Optional, Union
 
 from darca_exception.exception import DarcaException
+from darca_executor import DarcaExecError, DarcaExecutor
 from darca_log_facility.logger import DarcaLogger
-from darca_executor import DarcaExecutor, DarcaExecError
 
 from darca_space_manager.space_manager import SpaceManager
-
 
 logger = DarcaLogger(name="space_executor").get_logger()
 
@@ -29,7 +28,12 @@ class SpaceExecutorException(DarcaException):
         metadata: Optional[Dict] = None,
         cause: Exception = None,
     ):
-        super().__init__(message=message, error_code=error_code, metadata=metadata, cause=cause)
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            metadata=metadata,
+            cause=cause,
+        )
 
 
 class SpaceExecutor:
@@ -63,18 +67,23 @@ class SpaceExecutor:
 
         Args:
             space_name (str): Name of the managed space.
-            command (List[str] | str): The command to execute. Must be a list if use_shell=False,
-                                       or a string if use_shell=True.
+            command (List[str] | str): The command to execute. Must be a list
+                                       if use_shell=False, or a string if
+                                       use_shell=True.
             capture_output (bool): If True, captures stdout/stderr.
-            check (bool): Raise an exception if the command exits with a non-zero code.
-            env (Optional[dict]): Environment variables to pass to the subprocess.
+            check (bool): Raise an exception if the command exits with a
+                          non-zero code.
+            env (Optional[dict]): Environment variables to pass to the
+                                  subprocess.
             timeout (Optional[int]): Timeout in seconds.
 
         Returns:
-            subprocess.CompletedProcess: The result of the subprocess execution.
+            subprocess.CompletedProcess: The result of the subprocess
+                                         execution.
 
         Raises:
-            SpaceExecutorException: If the space is not found, or if execution fails for any reason.
+            SpaceExecutorException: If the space is not found, or if
+                                    execution fails for any reason.
         """
         # 1. Resolve the space path
         self._space_manager.refresh_index()
@@ -110,7 +119,11 @@ class SpaceExecutor:
 
         except DarcaExecError as e:
             # DarcaExecError is already quite detailed; wrap it for consistency
-            logger.error("Command execution failed in space '%s'.", space_name, exc_info=True)
+            logger.error(
+                "Command execution failed in space '%s'.",
+                space_name,
+                exc_info=True,
+            )
             raise SpaceExecutorException(
                 message=f"Failed to run command in space '{space_name}'.",
                 metadata={
@@ -129,7 +142,10 @@ class SpaceExecutor:
                 exc_info=True,
             )
             raise SpaceExecutorException(
-                message=f"Unexpected error while running command in space '{space_name}'.",
+                message=(
+                    f"Unexpected error while running command "
+                    f"in space '{space_name}'."
+                ),
                 metadata={"space": space_name, "command": command},
                 cause=e,
             )
