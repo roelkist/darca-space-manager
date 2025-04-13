@@ -250,3 +250,130 @@ def test_get_file_last_modified_os_error(space_file_manager, space_manager):
     # Check that the error code matches what we expect
     assert "FILE_MTIME_FAILED" in str(exc_info.value)
     assert "Error retrieving last modified time" in str(exc_info.value)
+
+
+def test_list_files_content_success(space_file_manager, space_manager):
+    """
+    Create a space with:
+      - An ASCII file
+      - A binary file
+      - A subdirectory with a file
+    Then confirm list_files_content returns correct entries.
+    """
+    space_name = "files_content_space"
+    space_manager.create_space(space_name)
+    space_path = space_manager.get_space(space_name)["path"]
+
+    # 1) ASCII file
+    ascii_file_rel = "hello.txt"
+    ascii_file_path = os.path.join(space_path, ascii_file_rel)
+    with open(ascii_file_path, "w", encoding="ascii") as f:
+        f.write("This is ASCII content")
+
+    # 2) Binary file
+    bin_file_rel = "image.bin"
+    bin_file_path = os.path.join(space_path, bin_file_rel)
+    with open(bin_file_path, "wb") as f:
+        f.write(b"\x00\xff\x00\xff")
+
+    # 3) Subdirectory with a file (also ASCII for demonstration)
+    sub_dir = os.path.join(space_path, "subdir")
+    os.makedirs(sub_dir, exist_ok=True)
+    sub_file_rel = "subdir/nested.txt"
+    sub_file_path = os.path.join(space_path, sub_file_rel)
+    with open(sub_file_path, "w", encoding="ascii") as f:
+        f.write("Inside subdirectory")
+
+    # Now call the method
+    results = space_file_manager.list_files_content(space_name)
+    # We expect 3 entries total (the directory "subdir" is skipped
+    # since it's not a file)
+    assert len(results) == 4  # FIXME Metadata.yaml part of list
+
+    # Sort results by file_name so we can check them easily
+    results_sorted = sorted(results, key=lambda x: x["file_name"])
+
+    # 1) ASCII file
+    assert results_sorted[0]["file_name"] == ascii_file_rel
+    assert results_sorted[0]["type"] == "ascii"
+    assert results_sorted[0]["file_content"] == "This is ASCII content"
+
+    # 2) Binary file
+    assert results_sorted[1]["file_name"] == bin_file_rel
+    assert results_sorted[1]["type"] == "binary"
+    assert results_sorted[1]["file_content"] is None
+
+    # 3) Subdirectory file
+    assert results_sorted[3]["file_name"] == sub_file_rel
+    assert results_sorted[3]["type"] == "ascii"
+    assert results_sorted[3]["file_content"] == "Inside subdirectory"
+
+
+def test_list_files_content_space_not_found(space_file_manager):
+    """
+    If the space doesn't exist, list_files_content should raise
+    SpaceFileManagerException.
+    """
+    with pytest.raises(SpaceFileManagerException) as exc_info:
+        space_file_manager.list_files_content("no_such_space")
+    assert "SPACE_NOT_FOUND" in str(exc_info.value)
+
+
+def test_list_files_content_file_read_error(space_file_manager, space_manager):
+    """
+    If reading a file fails (IOError), we log a warning and skip that file.
+    We'll use mock_open with side_effect to simulate an I/O error.
+    """
+    space_name = "file_read_error_space"
+    space_manager.create_space(space_name)
+    space_path = space_manager.get_space(space_name)["path"]
+
+    # Create a file that we'll fail to read
+    fail_file_rel = "failme.txt"
+    fail_file_path = os.path.join(space_path, fail_file_rel)
+    with open(fail_file_path, "w") as f:
+        f.write("unreachable content")
+
+    # Create a normal ASCII file to confirm that it is read successfully
+    ascii_file_rel = "good.txt"
+    ascii_file_path = os.path.join(space_path, ascii_file_rel)
+    with open(ascii_file_path, "w") as f:
+        f.write("Hello world")
+
+    # We'll patch builtins.open to raise an exception only for fail_file
+    original_open = open
+
+    def mocked_open(path, mode="r", *args, **kwargs):
+        if fail_file_rel in path:
+            raise IOError("Mocked I/O error")
+        return original_open(path, mode, *args, **kwargs)
+
+    with patch("builtins.open", side_effect=mocked_open):
+        results = space_file_manager.list_files_content(space_name)
+
+    # We expect only 1 result: the "good.txt"
+    assert len(results) == 2  # FIXME Metadata.yaml part of list
+    assert results[0]["file_name"] == ascii_file_rel
+    assert results[0]["type"] == "ascii"
+    assert results[0]["file_content"] == "Hello world"
+
+
+def test_list_files_content_listing_error(space_file_manager):
+    """
+    If list_files fails unexpectedly, we catch it and raise
+    SpaceFileManagerException
+    with code LIST_FILES_CONTENT_FAILED.
+    """
+    space_name = "listing_error_space"
+
+    # Mock list_files to throw an exception
+    with patch.object(
+        space_file_manager,
+        "list_files",
+        side_effect=RuntimeError("Mocked error"),
+    ):
+        with pytest.raises(SpaceFileManagerException) as exc_info:
+            space_file_manager.list_files_content(space_name)
+
+    assert "LIST_FILES_CONTENT_FAILED" in str(exc_info.value)
+    assert "listing_error_space" in str(exc_info.value)

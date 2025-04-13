@@ -151,6 +151,13 @@ SpaceFileManager
    files = file_mgr.list_files("reports")
    nested_files = file_mgr.list_files("reports", recursive=True)
 
+**Listing Files Content**
+
+.. code-block:: python
+
+   files_content_root = file_mgr.list_files_content("reports")
+   files_content_all = file_mgr.list_files_content("reports", recursive=True)
+
 **Checking File Existence**
 
 .. code-block:: python

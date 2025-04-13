@@ -238,6 +238,102 @@ class SpaceFileManager:
             )
             raise
 
+    def list_files_content(self, space_name: str) -> List[dict]:
+        """
+        Return a list describing each file within a space, including the
+        file's relative path, type ('ascii' or 'binary'), and content if ascii.
+
+        The output is a list of dicts:
+        [
+        {
+        "file_name": <relative path to file>,
+        "file_content": <ASCII text content or None>,
+        "type": "ascii" or "binary"
+        },
+        ...
+        ]
+
+        Args:
+            space_name (str): The space to scan.
+
+        Returns:
+            List[dict]: A list of file info dictionaries.
+
+        Raises:
+            SpaceFileManagerException: If the space doesn't exist or if any
+                                    unexpected I/O errors occur.
+        """
+        logger.debug(f"Collecting file contents in space '{space_name}'.")
+        try:
+            # 1. Refresh the space index to ensure we have the latest info
+            self._space_manager.refresh_index()
+            # 2. Verify the space exists
+            space = self._space_manager.get_space(space_name)
+            if not space:
+                raise SpaceFileManagerException(
+                    message=f"Space '{space_name}' not found.",
+                    error_code="SPACE_NOT_FOUND",
+                    metadata={"space": space_name},
+                )
+
+            # 3. Recursively list all entries in the space
+            all_entries = DirectoryUtils.list_directory(
+                space["path"], recursive=True
+            )
+
+            results = []
+            for entry in all_entries:
+                full_path = os.path.join(space["path"], entry)
+
+                # 4. Determine if file is ASCII or binary
+                try:
+                    if os.path.isfile(full_path):
+                        with open(full_path, "rb") as f:
+                            raw_data = f.read()
+
+                        try:
+                            # Attempt ASCII decode
+                            text_data = raw_data.decode("ascii")
+                            results.append(
+                                {
+                                    "file_name": entry,
+                                    "file_content": text_data,
+                                    "type": "ascii",
+                                }
+                            )
+                        except UnicodeDecodeError:
+                            # Mark as binary
+                            results.append(
+                                {
+                                    "file_name": entry,
+                                    "file_content": None,
+                                    "type": "binary",
+                                }
+                            )
+
+                except Exception as file_err:
+                    # Log a warning but skip this file
+                    logger.warning(
+                        f"Failed to read file '{entry}' in space "
+                        f"'{space_name}': {file_err}"
+                    )
+
+            return results
+
+        except Exception as e:
+            logger.error(
+                f"Failed to list files content in space '{space_name}'.",
+                exc_info=True,
+            )
+            raise SpaceFileManagerException(
+                message=(
+                    f"Error retrieving file contents for space '{space_name}'."
+                ),
+                error_code="LIST_FILES_CONTENT_FAILED",
+                metadata={"space": space_name},
+                cause=e,
+            )
+
     def get_file_last_modified(
         self, space_name: str, relative_path: str
     ) -> float:
