@@ -7,7 +7,7 @@ FIXME: Jail the command to the space directory.
 """
 
 from typing import Dict, List, Optional, Union
-
+import os
 from darca_exception.exception import DarcaException
 from darca_executor import DarcaExecError, DarcaExecutor
 from darca_log_facility.logger import DarcaLogger
@@ -58,6 +58,7 @@ class SpaceExecutor:
         self,
         space_name: str,
         command: Union[List[str], str],
+        cwd: Optional[str] = None,
         capture_output: bool = True,
         check: bool = True,
         env: Optional[dict] = None,
@@ -76,6 +77,9 @@ class SpaceExecutor:
             env (Optional[dict]): Environment variables to pass to the
             subprocess.
             timeout (Optional[int]): Timeout in seconds.
+            cwd (Optional[str]): An additional subdirectory path within the 
+            space. This will be appended to the space's root path before 
+            passing to DarcaExecutor as the working directory (cwd).
 
         Returns:
             subprocess.CompletedProcess: The result of the subprocess
@@ -98,6 +102,18 @@ class SpaceExecutor:
         space_path = space["path"]
         logger.debug(f"Resolved space '{space_name}' to path: {space_path}")
 
+        # 1a. Combine 'cwd' if provided, ensuring it doesn't escape the space
+        final_cwd = space_path
+        if cwd:
+            combined_path = os.path.join(space_path, cwd)
+            final_cwd = os.path.normpath(combined_path)
+            # Use commonpath check to detect boundary escapes
+            if os.path.commonpath([space_path, final_cwd]) != os.path.commonpath([space_path]):
+                raise SpaceExecutorException(
+                    message="Subdirectory path escapes space boundaries.",
+                    metadata={"space": space_name, "requested_cwd": cwd},
+                )
+            
         # 2. Invoke DarcaExecutor
         try:
             logger.debug("Executing command in space: %s", space_name)
@@ -105,7 +121,7 @@ class SpaceExecutor:
                 command=command,
                 capture_output=capture_output,
                 check=check,
-                cwd=space_path,
+                cwd=final_cwd,
                 env=env,
                 timeout=timeout,
             )
