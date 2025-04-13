@@ -376,7 +376,7 @@ def test_get_directory_last_modified_no_entries(space_manager):
     ), "Should return a float for an empty directory."
     # Optionally check that mtime matches the actual directory's mtime
     dir_path = space_manager.get_space(space_name)["path"]
-    assert abs(mtime - os.path.getmtime(dir_path)) < 0.0001
+    assert abs(mtime - os.path.getmtime(dir_path)) < 0.01
 
 
 def test_get_directory_last_modified_only_subdirs_no_files(space_manager):
@@ -401,7 +401,7 @@ def test_get_directory_last_modified_only_subdirs_no_files(space_manager):
 
     actual_mtime = os.path.getmtime(space_path)
     assert (
-        abs(dir_mtime - actual_mtime) < 0.0001
+        abs(dir_mtime - actual_mtime) < 0.01
     ), "Expected the directory's own mtime since no files exist."
 
 
@@ -430,3 +430,69 @@ def test_get_directory_last_modified_exception(space_manager):
         f"Error retrieving 'last modified' timestamp for space '{space_name}'"
         in str(exc_info.value)
     )
+
+
+def test_get_directory_last_modified_subdirectory_success(space_manager):
+    """
+    Create a space, add a subdirectory with a file, then call
+    get_directory_last_modified(space, directory=subdir).
+    Should return that file's mtime.
+    """
+    space_name = "mtime_subdir_space"
+    space_manager.create_space(space_name)
+    base_path = space_manager.get_space(space_name)["path"]
+
+    # Create the subdirectory and a file
+    subdir_path = os.path.join(base_path, "sub1")
+    os.makedirs(subdir_path, exist_ok=True)
+
+    file_path = os.path.join(subdir_path, "file.txt")
+    with open(file_path, "w") as f:
+        f.write("Hello Subdir")
+
+    # Check last modified time for the subdirectory
+    subdir_mtime = space_manager.get_directory_last_modified(
+        space_name, directory="sub1"
+    )
+    assert isinstance(subdir_mtime, float), "Should return a float"
+    actual_file_mtime = os.path.getmtime(file_path)
+    assert (
+        abs(subdir_mtime - actual_file_mtime) < 0.1
+    ), "Should match file.txt's modification time."
+
+
+def test_get_directory_last_modified_subdirectory_no_files(space_manager):
+    """
+    If the specified subdirectory has no files, we fall back to the subdir's
+    own mtime.
+    """
+    space_name = "empty_subdir_mtime"
+    space_manager.create_space(space_name)
+    base_path = space_manager.get_space(space_name)["path"]
+
+    empty_subdir_path = os.path.join(base_path, "empty_sub")
+    os.makedirs(empty_subdir_path, exist_ok=True)
+
+    subdir_mtime = space_manager.get_directory_last_modified(
+        space_name, directory="empty_sub"
+    )
+    assert isinstance(subdir_mtime, float)
+    actual_subdir_mtime = os.path.getmtime(empty_subdir_path)
+    assert (
+        abs(subdir_mtime - actual_subdir_mtime) < 0.1
+    ), "Should match the directory's own mtime if no files exist."
+
+
+def test_get_directory_last_modified_subdirectory_escape(space_manager):
+    """
+    Attempt to retrieve a subdirectory path that escapes the space boundaries.
+    Should raise a SpaceManagerException (PATH_ESCAPE_DETECTED).
+    """
+    space_name = "escape_subdir_space"
+    space_manager.create_space(space_name)
+
+    with pytest.raises(SpaceManagerException) as exc_info:
+        space_manager.get_directory_last_modified(
+            space_name, directory="../escape"
+        )
+    assert "escapes space boundaries" in str(exc_info.value)

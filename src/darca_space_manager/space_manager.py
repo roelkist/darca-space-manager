@@ -383,7 +383,9 @@ class SpaceManager:
                 cause=e,
             )
 
-    def get_directory_last_modified(self, name: str) -> float:
+    def get_directory_last_modified(
+        self, name: str, directory: str = None
+    ) -> float:
         """
         Return the 'last modified' timestamp of a space (directory), in seconds
         since the Unix epoch (UTC). The directory's timestamp is the newest
@@ -406,6 +408,26 @@ class SpaceManager:
             )
 
         try:
+            # Determine the target directory (base space or subdirectory)
+            base_path = space["path"]
+            if directory:
+                target_path = os.path.normpath(
+                    os.path.join(base_path, directory)
+                )
+                # Ensure the new path is within the base space
+                if os.path.commonpath(
+                    [base_path, target_path]
+                ) != os.path.commonpath([base_path]):
+                    raise SpaceManagerException(
+                        message="Subdirectory path escapes space boundaries.",
+                        error_code="PATH_ESCAPE_DETECTED",
+                        metadata={
+                            "space": name,
+                            "requested_subdir": directory,
+                        },
+                    )
+            else:
+                target_path = base_path
             # Recursively list all entries (files + subdirectories)
             # within the space.
             all_entries = DirectoryUtils.list_directory(
