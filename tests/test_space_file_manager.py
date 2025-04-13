@@ -351,11 +351,14 @@ def test_list_files_content_file_read_error(space_file_manager, space_manager):
     with patch("builtins.open", side_effect=mocked_open):
         results = space_file_manager.list_files_content(space_name)
 
+    # Sort results by file_name so we can check them easily
+    results_sorted = sorted(results, key=lambda x: x["file_name"])
+
     # We expect only 1 result: the "good.txt"
     assert len(results) == 2  # FIXME Metadata.yaml part of list
-    assert results[0]["file_name"] == ascii_file_rel
-    assert results[0]["type"] == "ascii"
-    assert results[0]["file_content"] == "Hello world"
+    assert results_sorted[0]["file_name"] == ascii_file_rel
+    assert results_sorted[0]["type"] == "ascii"
+    assert results_sorted[0]["file_content"] == "Hello world"
 
 
 def test_list_files_content_listing_error(space_file_manager):
