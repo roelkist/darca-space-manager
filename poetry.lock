@@ -438,14 +438,14 @@ colorlog = ">=6.9.0,<7.0.0"
 
 [[package]]
 name = "darca-yaml"
-version = "0.1.0"
+version = "0.2.0"
 description = "YAML utilities for reuse along projects."
 optional = false
 python-versions = "<4.0,>=3.12"
 groups = ["main"]
 files = [
-    {file = "darca_yaml-0.1.0-py3-none-any.whl", hash = "sha256:76102b76e8c3d7474ef10e0e39f658f8bfbad51e2762450002c02bb2aa5d4c3f"},
-    {file = "darca_yaml-0.1.0.tar.gz", hash = "sha256:80b32b53639c33b0483878c54cde13f26ac94c494bc6cb3e9d038257f7cd8523"},
+    {file = "darca_yaml-0.2.0-py3-none-any.whl", hash = "sha256:b69b19b80377c19c6e118968d809a627afec55e50e3a619c3ef612eb1fba842c"},
+    {file = "darca_yaml-0.2.0.tar.gz", hash = "sha256:070a737c2d758bf4f9ca514144b2366d8318800c07f79785d47d0747f835e9d8"},
 ]
 
 [package.dependencies]
@@ -1414,4 +1414,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "2ff8d6ac29b11256d97db6373642f6c55992f82aea65b9eab0bf6d9e94ebb62a"
+content-hash = "eacdfabd99fac1e79b90f1bc53487f069ee3bb815e08ce81ade685cbc155d9b0"

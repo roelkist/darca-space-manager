@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "darca-space-manager"
-version = "0.6.0"
+version = "0.6.1"
 description = "Storage abstraction layer for managing logical spaces."
 authors = ["Roel Kist <roel.kist@gmail.com>"]
 license = "LICENSE"
@@ -12,7 +12,7 @@ python = "^3.12"
 darca-log-facility = "^0.1.0"
 darca-exception = "^0.1.0"
 darca-file-utils = "^0.1.0"
-darca-yaml = "^0.1.0"
+darca-yaml = "^0.2.0"
 darca-executor = "^0.1.0"
 
 
