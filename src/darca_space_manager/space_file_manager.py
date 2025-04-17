@@ -41,7 +41,12 @@ class SpaceFileManager:
         self._space_manager = SpaceManager()
 
     def _resolve_file_path(self, space_name: str, relative_path: str) -> str:
-        self._space_manager.refresh_index()
+        if not self._space_manager.space_exists(space_name):
+            logger.info(
+                f"Space '{space_name}' does not exist. "
+                f"Attempting to refresh the index."
+            )
+            self._space_manager.refresh_index()
         try:
             space = self._space_manager.get_space(space_name)
             if not space:
@@ -127,11 +132,6 @@ class SpaceFileManager:
             return FileUtils.read_file(file_path, mode="r", encoding="utf-8")
 
         except Exception as e:
-            logger.error(
-                f"Failed to read file '{relative_path}' in "
-                f"space '{space_name}'.",
-                exc_info=True,
-            )
             raise SpaceFileManagerException(
                 message=(
                     f"Failed to read file '{relative_path}' in "

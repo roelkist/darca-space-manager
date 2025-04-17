@@ -48,8 +48,6 @@ class SpaceManager:
         dirs = config.get_directories()
         self.space_dir = dirs["SPACE_DIR"]
         self.index = self._load_index()
-        self.refresh_index()
-        logger.info("✅ SpaceManager initialized and index refreshed.")
 
     def _load_index(self) -> Dict:
         try:
