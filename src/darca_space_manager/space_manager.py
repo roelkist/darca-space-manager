@@ -469,3 +469,65 @@ class SpaceManager:
                 metadata={"space": name},
                 cause=e,
             )
+
+    def rename_space(self, old_name: str, new_name: str) -> bool:
+        """
+        Rename a space, updating filesystem, metadata, and refreshing the index.
+
+        Args:
+            old_name (str): Existing space name.
+            new_name (str): New desired space name.
+
+        Returns:
+            bool: True if rename successful.
+        """
+        if not self.space_exists(old_name):
+            raise SpaceManagerException(
+                f"Space '{old_name}' does not exist.",
+                error_code="SPACE_NOT_FOUND",
+                metadata={"space": old_name},
+            )
+
+        if self.space_exists(new_name):
+            raise SpaceManagerException(
+                f"A space with the new name '{new_name}' already exists.",
+                error_code="SPACE_ALREADY_EXISTS",
+                metadata={"space": new_name},
+            )
+
+        try:
+            old_space = self.get_space(old_name)
+            old_path = old_space["path"]
+
+            # Determine new path
+            new_path = os.path.join(os.path.dirname(old_path), new_name)
+
+            # Move the directory
+            DirectoryUtils.move_directory(old_path, new_path)
+
+            # Update metadata.yaml inside the moved directory
+            metadata_path = os.path.join(new_path, METADATA_FILENAME)
+            metadata = YamlUtils.load_yaml_file(metadata_path)
+            metadata["name"] = new_name
+            metadata["path"] = new_path
+            YamlUtils.save_yaml_file(metadata_path, metadata)
+
+            # Refresh the entire index after the rename
+            self.refresh_index()
+
+            logger.info(
+                f"✏️ Space '{old_name}' successfully renamed to '{new_name}'."
+            )
+            return True
+
+        except Exception as e:
+            logger.error(
+                f"❌ Failed to rename space '{old_name}' to '{new_name}'.",
+                exc_info=True,
+            )
+            raise SpaceManagerException(
+                f"Failed to rename space '{old_name}' to '{new_name}'.",
+                error_code="RENAME_SPACE_FAILED",
+                metadata={"old_name": old_name, "new_name": new_name},
+                cause=e,
+            )
