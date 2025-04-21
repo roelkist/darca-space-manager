@@ -503,7 +503,7 @@ class SpaceManager:
             new_path = os.path.join(os.path.dirname(old_path), new_name)
 
             # Move the directory
-            DirectoryUtils.move_directory(old_path, new_path)
+            DirectoryUtils.rename_directory(old_path, new_path)
 
             # Update metadata.yaml inside the moved directory
             metadata_path = os.path.join(new_path, METADATA_FILENAME)
