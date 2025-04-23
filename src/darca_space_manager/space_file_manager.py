@@ -214,7 +214,7 @@ class SpaceFileManager:
             )
             raise
 
-    def list_files(self, space_name: str, recursive: bool = True) -> List[str]:
+    def list_files(self, space_name: str, recursive: bool = False, files_only: bool = False) -> List[str]:
         try:
             space = self._space_manager.get_space(space_name)
             if not space:
@@ -224,9 +224,21 @@ class SpaceFileManager:
                     metadata={"space": space_name},
                 )
 
-            files = DirectoryUtils.list_directory(
+            all_entries = DirectoryUtils.list_directory(
                 space["path"], recursive=recursive
             )
+            
+            # Filter files from all entries if files_only == true, using self.file_exists.
+            if files_only: 
+                files = [
+                    entry
+                    for entry in all_entries
+                    if self.file_exists(space_name, entry)
+                ]
+            else:
+                files = all_entries
+            print(files)
+
             logger.info(
                 f"Listed files in space '{space_name}' "
                 f"(recursive={recursive})."
