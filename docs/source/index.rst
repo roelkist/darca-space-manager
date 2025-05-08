@@ -1,26 +1,38 @@
 .. darca-space-manager documentation master file
 
-Welcome to darca-space-manager's documentation!
-================================================
+Welcome to darca-space-manager
+==============================
 
-This package provides a local storage abstraction layer to manage "spaces" — logical directories backed by metadata. It supports creating, listing, deleting, and tracking files and metadata inside each space.
+Logical space management and execution framework.
 
-Project Overview
-----------------
+Readme
+------
 
 .. include:: ../../README.rst
    
-Getting Started
----------------
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents
-
-   usage
-   api
 
 Community & Contribution
 ------------------------
 
 .. include:: ../../CONTRIBUTING.rst
+
+
+Overview
+--------
+
+darca-space-manager provides high-level management of logical "spaces", including:
+
+- Creating and deleting spaces
+- Managing files inside spaces
+- Running commands inside spaces
+- Metadata and concurrency handling
+
+Contents
+--------
+
+.. toctree::
+   :maxdepth: 2
+
+   usage
+   concepts
+   api

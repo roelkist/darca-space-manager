@@ -1,18 +1,12 @@
 API Reference
 =============
 
-.. automodule:: darca_space_manager.space_manager
-   :members:
-   :undoc-members:
-   :show-inheritance:
+The following modules provide programmatic access to darca-space-manager:
 
-.. automodule:: darca_space_manager.space_file_manager
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. toctree::
+   :maxdepth: 1
 
-.. automodule:: darca_space_manager.space_executor
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+   modules/space_manager
+   modules/space_file_manager
+   modules/space_executor
+   modules/space_service

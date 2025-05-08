@@ -14,6 +14,7 @@ def get_directories():
     return {
         "SPACE_DIR": os.path.join(base, "spaces"),
         "METADATA_DIR": os.path.join(base, "metadata"),
+        "CONTROL_DIR": os.path.join(base, "control"),
         "LOG_DIR": os.path.join(base, "logs"),
     }
 
