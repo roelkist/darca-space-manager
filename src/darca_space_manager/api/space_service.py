@@ -1,9 +1,3 @@
-"""
-api/space_service.py
-
-Unified API service for managing spaces, files, metadata and command execution.
-"""
-
 from typing import Optional, Union, List, Dict
 from darca_space_manager.api.space_manager import SpaceManager
 from darca_space_manager.api.space_file_manager import SpaceFileManager
@@ -19,16 +13,14 @@ class SpaceService:
 
     def __init__(self):
         self._manager = SpaceManager()
-        self._file_manager = SpaceFileManager()
-        self._executor = SpaceExecutor()
-
-    # -- Space Lifecycle --
+        self._file_manager = SpaceFileManager(self._manager)  
+        self._executor = SpaceExecutor(self._manager)         
 
     def create_space(self, name: str, label: str = "", parent: Optional[str] = None) -> Space:
         return self._manager.create_space(name, label, parent)
 
-    def delete_space(self, name: str) -> bool:
-        return self._manager.delete_space(name)
+    def delete_space(self, name: str, force: bool = False) -> bool:
+        return self._manager.delete_space(name, force)
 
     def rename_space(self, old_name: str, new_name: str) -> Space:
         return self._manager.rename_space(old_name, new_name)
@@ -41,8 +33,6 @@ class SpaceService:
 
     def list_spaces(self, label_filter: Optional[str] = None) -> List[Space]:
         return self._manager.list_spaces(label_filter)
-
-    # -- File operations --
 
     def file_exists(self, uri: Union[str, SpaceURI]) -> bool:
         return self._file_manager.file_exists(uri)
@@ -64,8 +54,6 @@ class SpaceService:
 
     def file_last_modified(self, uri: Union[str, SpaceURI]) -> float:
         return self._file_manager.get_file_last_modified(uri)
-
-    # -- Command execution --
 
     def run(
         self,

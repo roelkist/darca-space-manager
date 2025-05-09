@@ -1,5 +1,17 @@
-from .space_executor import SpaceExecutor
-from .space_file_manager import SpaceFileManager
-from .space_manager import SpaceManager
+"""
+darca_space_manager
 
-__all__ = ["SpaceManager", "SpaceFileManager", "SpaceExecutor"]
+Logical space management framework for filesystem-based environments.
+Provides structured subspace creation, file operations, command execution,
+and metadata integrity with safe concurrency features.
+"""
+
+from darca_space_manager.api.space_service import SpaceService
+from darca_space_manager.models.space import Space
+from darca_space_manager.models.space_uri import SpaceURI
+
+__all__ = [
+    "SpaceService",
+    "Space",
+    "SpaceURI",
+]

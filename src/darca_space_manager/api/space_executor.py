@@ -45,10 +45,10 @@ class SpaceExecutor:
     Enforces space boundaries and supports SpaceURI addressing.
     """
 
-    def __init__(self, use_shell: bool = False):
-        self._space_manager = SpaceManager()
+    def __init__(self, space_manager: Optional[SpaceManager] = None, use_shell: bool = False):
+        self._space_manager = space_manager or SpaceManager()
         self._executor = DarcaExecutor(use_shell=use_shell)
-        logger.debug(f"🚀 SpaceExecutor initialized (use_shell={use_shell}).")
+        logger.debug(f"SpaceExecutor initialized (use_shell={use_shell}).")
 
     def run_in_space(
         self,
@@ -77,7 +77,7 @@ class SpaceExecutor:
             SpaceExecutorException: On failures.
         """
         if isinstance(uri, str):
-            uri = SpaceURI.parse(uri)
+            uri = SpaceURI.from_str(uri)
 
         space = self._space_manager.get_space(uri.space_name)
         if not space:

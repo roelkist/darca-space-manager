@@ -9,6 +9,8 @@ readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+pydantic = "^2.11.4"
+typing-extensions = "^4.0" 
 darca-log-facility = "^0.1.0"
 darca-exception = "^0.1.0"
 darca-file-utils = "^0.1.0"

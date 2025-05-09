@@ -43,8 +43,8 @@ class SpaceFileManager:
     Provides file-level operations within managed spaces.
     """
 
-    def __init__(self):
-        self._space_manager = SpaceManager()
+    def __init__(self, space_manager: Optional[SpaceManager] = None):
+        self._space_manager = space_manager or SpaceManager()
 
     def _resolve_file_path(self, space_uri: SpaceURI) -> str:
         space = self._space_manager.get_space(space_uri.space_name)
@@ -83,7 +83,7 @@ class SpaceFileManager:
 
     def file_exists(self, uri: Union[str, SpaceURI]) -> bool:
         if isinstance(uri, str):
-            uri = SpaceURI.parse(uri)
+            uri = SpaceURI.from_str(uri)
 
         file_path = self._resolve_file_path(uri)
         exists = FileUtils.file_exist(file_path)
@@ -93,7 +93,7 @@ class SpaceFileManager:
 
     def get_file(self, uri: Union[str, SpaceURI], load: bool = False) -> Union[str, dict]:
         if isinstance(uri, str):
-            uri = SpaceURI.parse(uri)
+            uri = SpaceURI.from_str(uri)
 
         file_path = self._resolve_file_path(uri)
 
@@ -121,7 +121,7 @@ class SpaceFileManager:
 
     def set_file(self, uri: Union[str, SpaceURI], content: Union[str, dict]) -> bool:
         if isinstance(uri, str):
-            uri = SpaceURI.parse(uri)
+            uri = SpaceURI.from_str(uri)
 
         file_path = self._resolve_file_path(uri)
 
@@ -163,7 +163,7 @@ class SpaceFileManager:
 
     def delete_file(self, uri: Union[str, SpaceURI]) -> bool:
         if isinstance(uri, str):
-            uri = SpaceURI.parse(uri)
+            uri = SpaceURI.from_str(uri)
 
         file_path = self._resolve_file_path(uri)
 
@@ -244,7 +244,7 @@ class SpaceFileManager:
 
     def get_file_last_modified(self, uri: Union[str, SpaceURI]) -> float:
         if isinstance(uri, str):
-            uri = SpaceURI.parse(uri)
+            uri = SpaceURI.from_str(uri)
 
         if not self.file_exists(uri):
             raise SpaceFileManagerException(

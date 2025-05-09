@@ -1,37 +1,36 @@
-# tests/conftest.py
-
+import os
 import shutil
 import tempfile
+import logging
 
 import pytest
 
-from darca_space_manager import SpaceExecutor, SpaceFileManager, SpaceManager
+
+@pytest.fixture(scope="session", autouse=True)
+def configure_logging():
+    """Minimal logging config for test sessions."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+    )
 
 
-@pytest.fixture(scope="function")
-def temp_darca_env(monkeypatch):
-    temp_dir = tempfile.mkdtemp(prefix="darca_test_env_")
-    monkeypatch.setenv("DARCA_SPACE_BASE", temp_dir)
-    yield temp_dir
-    shutil.rmtree(temp_dir, ignore_errors=True)
-
-
-@pytest.fixture(scope="function")
-def space_manager(temp_darca_env):
+@pytest.fixture
+def darca_base_env(monkeypatch):
     """
-    Provides a fresh SpaceManager instance using the isolated temp config.
+    Patch DARCA_SPACE_BASE to a temporary directory.
+    Automatically used in other fixtures that depend on it.
     """
-    return SpaceManager()
+    tmp_dir = tempfile.mkdtemp(prefix="darca_test_")
+    monkeypatch.setenv("DARCA_SPACE_BASE", tmp_dir)
+    yield tmp_dir
+    shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-@pytest.fixture(scope="function")
-def space_file_manager(temp_darca_env):
+@pytest.fixture
+def isolated_service(darca_base_env):
     """
-    Provides a fresh SpaceFileManager instance using the isolated temp config.
+    Returns a fresh instance of SpaceService in a clean DARCA env.
     """
-    return SpaceFileManager()
-
-
-@pytest.fixture(scope="function")
-def space_executor(temp_darca_env):
-    return SpaceExecutor(use_shell=False)
+    from darca_space_manager import SpaceService
+    return SpaceService()

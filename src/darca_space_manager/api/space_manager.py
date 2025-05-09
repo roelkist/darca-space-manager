@@ -7,6 +7,7 @@ High-level API for managing logical spaces.
 import datetime
 import os
 from typing import Dict, List, Optional
+from contextlib import contextmanager
 
 from darca_exception.exception import DarcaException
 from darca_file_utils.directory_utils import DirectoryUtils
@@ -138,29 +139,66 @@ class SpaceManager:
                     cause=e,
                 )
 
-    def delete_space(self, name: str) -> bool:
-        space = self.get_space(name)
-        if not space:
+    def delete_space(self, name: str, force: bool = False) -> bool:
+        """
+        Delete a space and optionally its nested subspaces.
+
+        Args:
+            name (str): The name of the space to delete.
+            force (bool): If True, delete all nested spaces too.
+
+        Returns:
+            bool: True if deletion was successful.
+
+        Raises:
+            SpaceManagerException: On failure or subspace conflicts.
+        """
+        if not self.space_exists(name):
             raise SpaceManagerException(
-                f"Space '{name}' not found.",
+                f"Space '{name}' does not exist.",
+                error_code="SPACE_NOT_FOUND",
                 metadata={"space": name},
             )
 
-        with SpaceOperationLock(name):
-            try:
-                DirectoryUtils.remove_directory(space.path)
-                self._registry.remove_space(name)
+        space = self.get_space(name)
+        base_path = space.path
 
-                logger.info(f"🗑️ Space '{name}' deleted.")
+        # Find nested spaces (logical subspaces within the same path tree)
+        nested = [
+            s for s in self._registry.list_spaces()
+            if s["name"] != name and s["path"].startswith(base_path + os.sep)
+        ]
+
+        if nested and not force:
+            raise SpaceManagerException(
+                message=f"Cannot delete space '{name}' — it contains subspaces.",
+                error_code="SUBSPACES_EXIST",
+                metadata={"space": name, "subspaces": [s["name"] for s in nested]},
+            )
+
+        # Lock the space and all nested ones (if force=True)
+        lock_names = [name] + [s["name"] for s in nested]
+        try:
+            with self._acquire_multiple_locks(lock_names):
+                # Delete physical directory
+                DirectoryUtils.remove_directory(base_path)
+
+                # Remove from registry
+                self._registry.remove_space(name)
+                for sub in nested:
+                    self._registry.remove_space(sub["name"])
+
+                logger.info(f"🗑️ Space '{name}' deleted (force={force}).")
                 return True
 
-            except Exception as e:
-                logger.error(f"❌ Failed to delete space '{name}'.", exc_info=True)
-                raise SpaceManagerException(
-                    f"Failed to delete space '{name}'.",
-                    metadata={"space": name},
-                    cause=e,
-                )
+        except Exception as e:
+            logger.error(f"❌ Failed to delete space '{name}'", exc_info=True)
+            raise SpaceManagerException(
+                message=f"Failed to delete space '{name}'.",
+                error_code="DELETE_SPACE_FAILED",
+                metadata={"space": name, "force": force},
+                cause=e,
+            )
 
     def list_spaces(self, label_filter: Optional[str] = None) -> List[Space]:
         try:
@@ -178,6 +216,19 @@ class SpaceManager:
             )
 
     def rename_space(self, old_name: str, new_name: str) -> Space:
+        """
+        Rename a space, updating filesystem, metadata, and registry.
+
+        Args:
+            old_name (str): Current space name.
+            new_name (str): Desired new space name.
+
+        Returns:
+            Space: Updated space model.
+
+        Raises:
+            SpaceManagerException: If rename fails or causes conflicts.
+        """
         if not self.space_exists(old_name):
             raise SpaceManagerException(
                 f"Space '{old_name}' does not exist.",
@@ -192,35 +243,59 @@ class SpaceManager:
                 metadata={"space": new_name},
             )
 
+        old_space = self.get_space(old_name)
+        old_path = old_space.path
+        new_path = os.path.join(os.path.dirname(old_path), new_name)
+
+        # Detect conflicting paths
+        for s in self._registry.list_spaces():
+            if s["name"] in (old_name, new_name):
+                continue
+            if s["path"] == new_path or s["path"].startswith(new_path + os.sep):
+                raise SpaceManagerException(
+                    message=f"Cannot rename '{old_name}' → '{new_name}': target path conflicts with space '{s['name']}'",
+                    error_code="RENAME_COLLISION",
+                    metadata={"conflict": s["name"], "target_path": new_path},
+                )
+
+        # Lock both old and new space names
         with SpaceOperationLock(old_name), SpaceOperationLock(new_name):
             try:
-                old_space = self.get_space(old_name)
-                old_path = old_space.path
-                new_path = os.path.join(os.path.dirname(old_path), new_name)
-
                 DirectoryUtils.rename_directory(old_path, new_path)
 
-                new_space = Space(
+                updated = Space(
                     name=new_name,
+                    path=new_path,
                     label=old_space.label,
                     parent=old_space.parent,
-                    path=new_path,
                     created_at=old_space.created_at,
                     last_modified_at=datetime.datetime.now(datetime.timezone.utc),
                 )
 
                 self._registry.remove_space(old_name)
-                self._registry.add_space(new_space.name, new_space.to_dict())
+                self._registry.add_space(new_name, updated.to_dict())
 
-                logger.info(f"✏️ Space '{old_name}' successfully renamed to '{new_name}'.")
-
-                return new_space
+                logger.info(f"✏️ Space '{old_name}' successfully renamed to '{new_name}'")
+                return updated
 
             except Exception as e:
-                logger.error(f"❌ Failed to rename space '{old_name}' to '{new_name}'.", exc_info=True)
+                logger.error(
+                    f"❌ Failed to rename space '{old_name}' to '{new_name}'", exc_info=True
+                )
                 raise SpaceManagerException(
                     f"Failed to rename space '{old_name}' to '{new_name}'.",
                     error_code="RENAME_SPACE_FAILED",
                     metadata={"old_name": old_name, "new_name": new_name},
                     cause=e,
                 )
+
+    @contextmanager
+    def _acquire_multiple_locks(self, space_names: list):
+        locks = [SpaceOperationLock(n) for n in sorted(set(space_names))]
+        try:
+            for lock in locks:
+                lock.__enter__()
+            yield
+        finally:
+            for lock in reversed(locks):
+                lock.__exit__(None, None, None)
