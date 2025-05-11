@@ -10,13 +10,14 @@ from typing import Dict, List, Optional
 from contextlib import contextmanager
 
 from darca_exception.exception import DarcaException
-from darca_file_utils.directory_utils import DirectoryUtils
 from darca_log_facility.logger import DarcaLogger
 
 from darca_space_manager.core.space_registry import SpaceMetadataRegistry
 from darca_space_manager.core.space_path_manager import SpacePathManager
 from darca_space_manager.core.space_operation_lock import SpaceOperationLock
 from darca_space_manager.models.space import Space
+from darca_space_manager.core.interfaces.file_backend import FileBackend
+from darca_space_manager.core.backends.backend_resolver import BackendResolver
 
 logger = DarcaLogger(name="space_manager").get_logger()
 
@@ -36,8 +37,9 @@ class SpaceManager:
     API layer for managing logical spaces.
     """
 
-    def __init__(self):
+    def __init__(self, backend: Optional[FileBackend] = None):
         self._registry = SpaceMetadataRegistry()
+        self._backend = backend or BackendResolver.get_backend()
 
     def space_exists(self, name: str) -> bool:
         return self._registry.get_space(name) is not None
@@ -60,26 +62,21 @@ class SpaceManager:
         return space
 
     def _compute_space_last_modified(self, path: str) -> float:
-        all_entries = DirectoryUtils.list_directory(path, recursive=True)
+        entries = self._backend.list(path, recursive=True)
+        latest = 0.0
 
-        if not all_entries:
-            return os.path.getmtime(path)
-
-        latest_timestamp = 0.0
-
-        for entry in all_entries:
+        for entry in entries:
             full_path = os.path.join(path, entry)
+            try:
+                if self._backend.exists(full_path):
+                    mtime = self._backend.stat_mtime(full_path)
+                    latest = max(latest, mtime)
+            except Exception:
+                pass
 
-            if os.path.isfile(full_path):
-                file_mtime = os.path.getmtime(full_path)
-                if file_mtime > latest_timestamp:
-                    latest_timestamp = file_mtime
+        return latest or self._backend.stat_mtime(path)
 
-        return latest_timestamp or os.path.getmtime(path)
-
-    def create_space(
-        self, name: str, label: str = "", parent_path: Optional[str] = None
-    ) -> Space:
+    def create_space(self, name: str, label: str = "", parent_path: Optional[str] = None) -> Space:
         if self.space_exists(name):
             raise SpaceManagerException(
                 f"Space '{name}' already exists.",
@@ -105,15 +102,14 @@ class SpaceManager:
                     destination_path = os.path.normpath(os.path.join(base_path, relative_subpath, name))
 
                     SpacePathManager().ensure_within_space(base_path, destination_path)
-
-                    DirectoryUtils.create_directory(os.path.dirname(destination_path))
+                    self._backend.mkdir(os.path.dirname(destination_path), parents=True)
                 else:
                     destination_path = os.path.join(
                         self._registry.load_registry().get("base_path", os.path.expanduser("~/.local/share/darca_space/spaces")),
                         name,
                     )
 
-                DirectoryUtils.create_directory(destination_path)
+                self._backend.mkdir(destination_path)
 
                 space = Space(
                     name=name,
@@ -127,7 +123,6 @@ class SpaceManager:
                 self._registry.add_space(space.name, space.to_dict())
 
                 logger.info(f"✅ Space '{name}' created at '{destination_path}' with label '{label}'.")
-
                 return space
 
             except Exception as e:
@@ -140,19 +135,6 @@ class SpaceManager:
                 )
 
     def delete_space(self, name: str, force: bool = False) -> bool:
-        """
-        Delete a space and optionally its nested subspaces.
-
-        Args:
-            name (str): The name of the space to delete.
-            force (bool): If True, delete all nested spaces too.
-
-        Returns:
-            bool: True if deletion was successful.
-
-        Raises:
-            SpaceManagerException: On failure or subspace conflicts.
-        """
         if not self.space_exists(name):
             raise SpaceManagerException(
                 f"Space '{name}' does not exist.",
@@ -163,7 +145,6 @@ class SpaceManager:
         space = self.get_space(name)
         base_path = space.path
 
-        # Find nested spaces (logical subspaces within the same path tree)
         nested = [
             s for s in self._registry.list_spaces()
             if s["name"] != name and s["path"].startswith(base_path + os.sep)
@@ -176,14 +157,11 @@ class SpaceManager:
                 metadata={"space": name, "subspaces": [s["name"] for s in nested]},
             )
 
-        # Lock the space and all nested ones (if force=True)
         lock_names = [name] + [s["name"] for s in nested]
         try:
             with self._acquire_multiple_locks(lock_names):
-                # Delete physical directory
-                DirectoryUtils.remove_directory(base_path)
+                self._backend.rmdir(base_path)
 
-                # Remove from registry
                 self._registry.remove_space(name)
                 for sub in nested:
                     self._registry.remove_space(sub["name"])
@@ -204,9 +182,7 @@ class SpaceManager:
         try:
             spaces_data = self._registry.list_spaces()
             spaces = [Space.from_dict(data) for data in spaces_data]
-
             return [s for s in spaces if s.label == label_filter] if label_filter else spaces
-
         except Exception as e:
             logger.error("❌ Failed to list spaces.", exc_info=True)
             raise SpaceManagerException(
@@ -216,19 +192,6 @@ class SpaceManager:
             )
 
     def rename_space(self, old_name: str, new_name: str) -> Space:
-        """
-        Rename a space, updating filesystem, metadata, and registry.
-
-        Args:
-            old_name (str): Current space name.
-            new_name (str): Desired new space name.
-
-        Returns:
-            Space: Updated space model.
-
-        Raises:
-            SpaceManagerException: If rename fails or causes conflicts.
-        """
         if not self.space_exists(old_name):
             raise SpaceManagerException(
                 f"Space '{old_name}' does not exist.",
@@ -247,7 +210,6 @@ class SpaceManager:
         old_path = old_space.path
         new_path = os.path.join(os.path.dirname(old_path), new_name)
 
-        # Detect conflicting paths
         for s in self._registry.list_spaces():
             if s["name"] in (old_name, new_name):
                 continue
@@ -258,10 +220,9 @@ class SpaceManager:
                     metadata={"conflict": s["name"], "target_path": new_path},
                 )
 
-        # Lock both old and new space names
         with SpaceOperationLock(old_name), SpaceOperationLock(new_name):
             try:
-                DirectoryUtils.rename_directory(old_path, new_path)
+                self._backend.rename(old_path, new_path)
 
                 updated = Space(
                     name=new_name,
@@ -279,9 +240,7 @@ class SpaceManager:
                 return updated
 
             except Exception as e:
-                logger.error(
-                    f"❌ Failed to rename space '{old_name}' to '{new_name}'", exc_info=True
-                )
+                logger.error(f"❌ Failed to rename space '{old_name}' to '{new_name}'", exc_info=True)
                 raise SpaceManagerException(
                     f"Failed to rename space '{old_name}' to '{new_name}'.",
                     error_code="RENAME_SPACE_FAILED",

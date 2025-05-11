@@ -4,6 +4,8 @@ from darca_space_manager.api.space_file_manager import SpaceFileManager
 from darca_space_manager.api.space_executor import SpaceExecutor
 from darca_space_manager.models.space_uri import SpaceURI
 from darca_space_manager.models.space import Space
+from darca_space_manager.core.interfaces.file_backend import FileBackend
+from darca_space_manager.core.backends.backend_resolver import BackendResolver
 
 
 class SpaceService:
@@ -11,10 +13,14 @@ class SpaceService:
     Unified API layer for managing logical spaces, files, and command execution.
     """
 
-    def __init__(self):
-        self._manager = SpaceManager()
-        self._file_manager = SpaceFileManager(self._manager)  
-        self._executor = SpaceExecutor(self._manager)         
+    def __init__(self, backend: Optional[FileBackend] = None):
+        self._backend = backend or BackendResolver.get_backend()
+
+        self._manager = SpaceManager(backend=self._backend)
+        self._file_manager = SpaceFileManager(space_manager=self._manager, backend=self._backend)
+        self._executor = SpaceExecutor(space_manager=self._manager, backend=self._backend)
+
+    # --- Space Operations ---
 
     def create_space(self, name: str, label: str = "", parent: Optional[str] = None) -> Space:
         return self._manager.create_space(name, label, parent)
@@ -33,6 +39,8 @@ class SpaceService:
 
     def list_spaces(self, label_filter: Optional[str] = None) -> List[Space]:
         return self._manager.list_spaces(label_filter)
+
+    # --- File Operations ---
 
     def file_exists(self, uri: Union[str, SpaceURI]) -> bool:
         return self._file_manager.file_exists(uri)
@@ -54,6 +62,8 @@ class SpaceService:
 
     def file_last_modified(self, uri: Union[str, SpaceURI]) -> float:
         return self._file_manager.get_file_last_modified(uri)
+
+    # --- Command Execution ---
 
     def run(
         self,
