@@ -1,8 +1,9 @@
 """
 api/space_manager.py
 
-High-level API for managing logical spaces.
+High-level API for managing logical spaces with access control.
 """
+#FIXME: moving to core, instance create by parsing all, managed above
 
 import datetime
 import os
@@ -11,13 +12,12 @@ from contextlib import contextmanager
 
 from darca_exception.exception import DarcaException
 from darca_log_facility.logger import DarcaLogger
+from darca_storage.interfaces.file_backend import FileBackend
 
-from darca_space_manager.core.space_registry import SpaceMetadataRegistry
-from darca_space_manager.core.space_path_manager import SpacePathManager
-from darca_space_manager.core.space_operation_lock import SpaceOperationLock
+from darca_space_manager.core.space_admin.space_registry import SpaceMetadataRegistry
+from darca_space_manager.core.space_admin.space_path_manager import SpacePathManager
+from darca_space_manager.core.space_admin.space_operation_lock import SpaceOperationLock
 from darca_space_manager.models.space import Space
-from darca_space_manager.core.interfaces.file_backend import FileBackend
-from darca_space_manager.core.backends.backend_resolver import BackendResolver
 
 logger = DarcaLogger(name="space_manager").get_logger()
 
@@ -34,12 +34,25 @@ class SpaceManagerException(DarcaException):
 
 class SpaceManager:
     """
-    API layer for managing logical spaces.
+    API layer for managing logical spaces with ownership and access control.
     """
 
-    def __init__(self, backend: Optional[FileBackend] = None):
+    def __init__(self, backend: FileBackend):
         self._registry = SpaceMetadataRegistry()
-        self._backend = backend or BackendResolver.get_backend()
+        self._backend = backend
+
+    def _assert_access(self, space: Space, user: Optional[str]):
+        if user is None:
+            return
+        if space.owner == user:
+            return
+        if space.permissions and user in space.permissions:
+            return
+        raise SpaceManagerException(
+            f"Access denied for user '{user}' on space '{space.name}'.",
+            error_code="ACCESS_DENIED",
+            metadata={"space": space.name, "user": user}
+        )
 
     def space_exists(self, name: str) -> bool:
         return self._registry.get_space(name) is not None
@@ -48,7 +61,7 @@ class SpaceManager:
         data = self._registry.get_space(name)
         return Space.from_dict(data) if data else None
 
-    def get_space_info(self, name: str) -> Space:
+    def get_space_info(self, name: str, user: Optional[str] = None) -> Space:
         space = self.get_space(name)
         if not space:
             raise SpaceManagerException(
@@ -57,6 +70,8 @@ class SpaceManager:
                 metadata={"space": name},
             )
 
+        self._assert_access(space, user)
+
         latest_timestamp = self._compute_space_last_modified(space.path)
         space.last_modified_at = datetime.datetime.fromtimestamp(latest_timestamp, datetime.timezone.utc)
         return space
@@ -64,7 +79,6 @@ class SpaceManager:
     def _compute_space_last_modified(self, path: str) -> float:
         entries = self._backend.list(path, recursive=True)
         latest = 0.0
-
         for entry in entries:
             full_path = os.path.join(path, entry)
             try:
@@ -73,10 +87,15 @@ class SpaceManager:
                     latest = max(latest, mtime)
             except Exception:
                 pass
-
         return latest or self._backend.stat_mtime(path)
 
-    def create_space(self, name: str, label: str = "", parent_path: Optional[str] = None) -> Space:
+    def create_space(
+        self,
+        name: str,
+        label: str = "",
+        parent_path: Optional[str] = None,
+        user: Optional[str] = None,
+    ) -> Space:
         if self.space_exists(name):
             raise SpaceManagerException(
                 f"Space '{name}' already exists.",
@@ -98,6 +117,8 @@ class SpaceManager:
                             metadata={"base": base_space_name, "path": parent_path},
                         )
 
+                    self._assert_access(base_space, user)
+
                     base_path = base_space.path
                     destination_path = os.path.normpath(os.path.join(base_path, relative_subpath, name))
 
@@ -118,6 +139,8 @@ class SpaceManager:
                     path=destination_path,
                     created_at=datetime.datetime.now(datetime.timezone.utc),
                     last_modified_at=datetime.datetime.now(datetime.timezone.utc),
+                    owner=user,
+                    permissions=[user] if user else None,
                 )
 
                 self._registry.add_space(space.name, space.to_dict())
@@ -134,15 +157,16 @@ class SpaceManager:
                     cause=e,
                 )
 
-    def delete_space(self, name: str, force: bool = False) -> bool:
-        if not self.space_exists(name):
+    def delete_space(self, name: str, force: bool = False, user: Optional[str] = None) -> bool:
+        space = self.get_space(name)
+        if not space:
             raise SpaceManagerException(
                 f"Space '{name}' does not exist.",
                 error_code="SPACE_NOT_FOUND",
                 metadata={"space": name},
             )
 
-        space = self.get_space(name)
+        self._assert_access(space, user)
         base_path = space.path
 
         nested = [
@@ -178,11 +202,19 @@ class SpaceManager:
                 cause=e,
             )
 
-    def list_spaces(self, label_filter: Optional[str] = None) -> List[Space]:
+    def list_spaces(self, label_filter: Optional[str] = None, user: Optional[str] = None) -> List[Space]:
         try:
             spaces_data = self._registry.list_spaces()
             spaces = [Space.from_dict(data) for data in spaces_data]
-            return [s for s in spaces if s.label == label_filter] if label_filter else spaces
+
+            if label_filter:
+                spaces = [s for s in spaces if s.label == label_filter]
+
+            if user:
+                spaces = [s for s in spaces if s.owner == user or (s.permissions and user in s.permissions)]
+
+            return spaces
+
         except Exception as e:
             logger.error("❌ Failed to list spaces.", exc_info=True)
             raise SpaceManagerException(
@@ -191,13 +223,16 @@ class SpaceManager:
                 cause=e,
             )
 
-    def rename_space(self, old_name: str, new_name: str) -> Space:
-        if not self.space_exists(old_name):
+    def rename_space(self, old_name: str, new_name: str, user: Optional[str] = None) -> Space:
+        old_space = self.get_space(old_name)
+        if not old_space:
             raise SpaceManagerException(
                 f"Space '{old_name}' does not exist.",
                 error_code="SPACE_NOT_FOUND",
                 metadata={"space": old_name},
             )
+
+        self._assert_access(old_space, user)
 
         if self.space_exists(new_name):
             raise SpaceManagerException(
@@ -206,7 +241,6 @@ class SpaceManager:
                 metadata={"space": new_name},
             )
 
-        old_space = self.get_space(old_name)
         old_path = old_space.path
         new_path = os.path.join(os.path.dirname(old_path), new_name)
 
@@ -231,6 +265,8 @@ class SpaceManager:
                     parent=old_space.parent,
                     created_at=old_space.created_at,
                     last_modified_at=datetime.datetime.now(datetime.timezone.utc),
+                    owner=old_space.owner,
+                    permissions=old_space.permissions,
                 )
 
                 self._registry.remove_space(old_name)

@@ -11,12 +11,11 @@ from typing import Dict, List, Optional, Union
 from darca_exception import DarcaException
 from darca_executor import DarcaExecError, DarcaExecutor
 from darca_log_facility import DarcaLogger
+from darca_storage.interfaces.file_backend import FileBackend
 
-from darca_space_manager.api.space_manager import SpaceManager
+from .space_manager import SpaceManager
 from darca_space_manager.models.space_uri import SpaceURI
-from darca_space_manager.core.space_path_manager import SpacePathManager
-from darca_space_manager.core.interfaces.file_backend import FileBackend
-from darca_space_manager.core.backends.backend_resolver import BackendResolver
+from darca_space_manager.core.space_admin.space_path_manager import SpacePathManager
 
 logger = DarcaLogger(name="space_executor").get_logger()
 
@@ -49,13 +48,12 @@ class SpaceExecutor:
 
     def __init__(
         self,
-        space_manager: Optional[SpaceManager] = None,
-        use_shell: bool = False,
-        backend: Optional[FileBackend] = None,
+        space_manager: SpaceManager,
+        use_shell: bool = False
     ):
         self._space_manager = space_manager or SpaceManager()
         self._executor = DarcaExecutor(use_shell=use_shell)
-        self._backend = backend or BackendResolver.get_backend()
+        self._backend = space_manager._backend
         logger.debug(f"SpaceExecutor initialized (use_shell={use_shell}).")
 
     def run_in_space(
@@ -66,6 +64,7 @@ class SpaceExecutor:
         check: bool = True,
         env: Optional[dict] = None,
         timeout: Optional[int] = 30,
+        user: Optional[str] = None,
     ) -> "DarcaExecutor.CompletedProcess":
         """
         Run a command within the specified space using DarcaExecutor.
@@ -77,6 +76,7 @@ class SpaceExecutor:
             check (bool): Raise error if command fails.
             env (Optional[dict]): Environment variables.
             timeout (Optional[int]): Timeout in seconds.
+            user (Optional[str]): User identity for access control.
 
         Returns:
             CompletedProcess: The result of execution.
@@ -93,6 +93,17 @@ class SpaceExecutor:
             raise SpaceExecutorException(
                 message=f"Space '{uri.space_name}' does not exist.",
                 metadata={"space": uri.space_name},
+            )
+
+        # Access control check
+        try:
+            self._space_manager._assert_access(space, user)
+        except Exception as e:
+            raise SpaceExecutorException(
+                message=str(e),
+                error_code="EXEC_ACCESS_DENIED",
+                metadata={"space": space.name, "user": user},
+                cause=e,
             )
 
         try:

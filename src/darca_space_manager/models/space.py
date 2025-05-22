@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, field_validator
 
 
@@ -10,6 +10,10 @@ class Space(BaseModel):
     parent: Optional[str] = None
     created_at: datetime
     last_modified_at: datetime
+
+    # Access control fields
+    owner: Optional[str] = None
+    permissions: Optional[List[str]] = None
 
     @field_validator("name")
     @classmethod

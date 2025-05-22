@@ -13,13 +13,13 @@ from typing import List, Union, Optional
 from darca_exception.exception import DarcaException
 from darca_log_facility.logger import DarcaLogger
 from darca_yaml.yaml_utils import YamlUtils
+from darca_storage.interfaces.file_backend import FileBackend
 
-from darca_space_manager.api.space_manager import SpaceManager
+from .space_manager import SpaceManager
 from darca_space_manager.models.space_uri import SpaceURI
-from darca_space_manager.core.space_path_manager import SpacePathManager
+from darca_space_manager.core.space_admin.space_path_manager import SpacePathManager
 from darca_space_manager.models.space import Space
-from darca_space_manager.core.interfaces.file_backend import FileBackend
-from darca_space_manager.core.backends.backend_resolver import BackendResolver
+
 
 logger = DarcaLogger(name="space_file_manager").get_logger()
 
@@ -43,9 +43,9 @@ class SpaceFileManager:
     Provides file-level operations within managed spaces.
     """
 
-    def __init__(self, space_manager: Optional[SpaceManager] = None, backend: Optional[FileBackend] = None):
-        self._space_manager = space_manager or SpaceManager()
-        self._backend = backend or BackendResolver.get_backend()
+    def __init__(self, space_manager: SpaceManager):
+        self._space_manager = space_manager
+        self._backend = space_manager._backend
 
     def _resolve_file_path(self, space_uri: SpaceURI) -> str:
         space = self._space_manager.get_space(space_uri.space_name)
@@ -55,7 +55,6 @@ class SpaceFileManager:
                 error_code="SPACE_NOT_FOUND",
                 metadata={"space": space_uri.space_name},
             )
-
         return SpacePathManager().resolve_path(space.path, space_uri.relative_path)
 
     def _touch_space_metadata(self, space_name: str):
@@ -74,25 +73,39 @@ class SpaceFileManager:
             parent=space.parent,
             created_at=space.created_at,
             last_modified_at=datetime.datetime.now(datetime.timezone.utc),
+            owner=space.owner,
+            permissions=space.permissions,
         )
 
         self._space_manager._registry.add_space(updated_space.name, updated_space.to_dict())
         logger.debug(f"📌 Space '{space_name}' metadata touched (last_modified_at updated).")
 
-    def file_exists(self, uri: Union[str, SpaceURI]) -> bool:
+    def _assert_access(self, space_name: str, user: Optional[str]):
+        space = self._space_manager.get_space(space_name)
+        if not space:
+            raise SpaceFileManagerException(
+                message=f"Space '{space_name}' does not exist.",
+                error_code="SPACE_NOT_FOUND",
+                metadata={"space": space_name},
+            )
+        self._space_manager._assert_access(space, user)
+
+    def file_exists(self, uri: Union[str, SpaceURI], user: Optional[str] = None) -> bool:
         if isinstance(uri, str):
             uri = SpaceURI.from_str(uri)
 
+        self._assert_access(uri.space_name, user)
         file_path = self._resolve_file_path(uri)
         exists = self._backend.exists(file_path)
 
         logger.debug(f"✅ File exists check: {file_path} → {exists}")
         return exists
 
-    def get_file(self, uri: Union[str, SpaceURI], load: bool = False) -> Union[str, dict]:
+    def get_file(self, uri: Union[str, SpaceURI], load: bool = False, user: Optional[str] = None) -> Union[str, dict]:
         if isinstance(uri, str):
             uri = SpaceURI.from_str(uri)
 
+        self._assert_access(uri.space_name, user)
         file_path = self._resolve_file_path(uri)
 
         logger.debug(f"📥 Getting file: {file_path} (load={load})")
@@ -116,10 +129,11 @@ class SpaceFileManager:
                 cause=e,
             )
 
-    def set_file(self, uri: Union[str, SpaceURI], content: Union[str, dict]) -> bool:
+    def set_file(self, uri: Union[str, SpaceURI], content: Union[str, dict], user: Optional[str] = None) -> bool:
         if isinstance(uri, str):
             uri = SpaceURI.from_str(uri)
 
+        self._assert_access(uri.space_name, user)
         file_path = self._resolve_file_path(uri)
 
         logger.debug(f"📥 Writing file: {file_path}")
@@ -158,10 +172,11 @@ class SpaceFileManager:
                 cause=e,
             )
 
-    def delete_file(self, uri: Union[str, SpaceURI]) -> bool:
+    def delete_file(self, uri: Union[str, SpaceURI], user: Optional[str] = None) -> bool:
         if isinstance(uri, str):
             uri = SpaceURI.from_str(uri)
 
+        self._assert_access(uri.space_name, user)
         file_path = self._resolve_file_path(uri)
 
         logger.debug(f"🗑️ Deleting file: {file_path}")
@@ -181,33 +196,23 @@ class SpaceFileManager:
                 cause=e,
             )
 
-    def list_files(self, space_name: str, recursive: bool = False, files_only: bool = False) -> List[str]:
-        space = self._space_manager.get_space(space_name)
-        if not space:
-            raise SpaceFileManagerException(
-                message=f"Space '{space_name}' not found.",
-                error_code="SPACE_NOT_FOUND",
-                metadata={"space": space_name},
-            )
+    def list_files(self, space_name: str, recursive: bool = False, files_only: bool = False, user: Optional[str] = None) -> List[str]:
+        self._assert_access(space_name, user)
 
+        space = self._space_manager.get_space(space_name)
         all_entries = self._backend.list(space.path, recursive=recursive)
 
         if files_only:
             return [
                 entry for entry in all_entries
-                if self.file_exists(SpaceURI(space=space_name, path=entry))
+                if self.file_exists(SpaceURI(space=space_name, path=entry), user=user)
             ]
         return all_entries
 
-    def list_files_content(self, space_name: str) -> List[dict]:
-        space = self._space_manager.get_space(space_name)
-        if not space:
-            raise SpaceFileManagerException(
-                message=f"Space '{space_name}' not found.",
-                error_code="SPACE_NOT_FOUND",
-                metadata={"space": space_name},
-            )
+    def list_files_content(self, space_name: str, user: Optional[str] = None) -> List[dict]:
+        self._assert_access(space_name, user)
 
+        space = self._space_manager.get_space(space_name)
         logger.debug(f"📦 Collecting file contents for space: {space_name}")
 
         all_entries = self._backend.list(space.path, recursive=True)
@@ -215,7 +220,6 @@ class SpaceFileManager:
 
         for entry in all_entries:
             full_path = os.path.join(space.path, entry)
-
             try:
                 raw_data = self._backend.read(full_path, binary=True)
                 try:
@@ -231,17 +235,18 @@ class SpaceFileManager:
                         "file_content": None,
                         "type": "binary",
                     })
-
             except Exception as e:
                 logger.warning(f"⚠️ Failed to read file {entry}: {e}")
 
         return results
 
-    def get_file_last_modified(self, uri: Union[str, SpaceURI]) -> float:
+    def get_file_last_modified(self, uri: Union[str, SpaceURI], user: Optional[str] = None) -> float:
         if isinstance(uri, str):
             uri = SpaceURI.from_str(uri)
 
-        if not self.file_exists(uri):
+        self._assert_access(uri.space_name, user)
+
+        if not self.file_exists(uri, user=user):
             raise SpaceFileManagerException(
                 f"File '{uri}' does not exist.",
                 error_code="FILE_NOT_FOUND",
