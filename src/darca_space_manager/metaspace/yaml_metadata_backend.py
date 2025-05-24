@@ -1,29 +1,28 @@
-"""
-space_registry.py
-
-Centralized metadata registry for logical spaces.
-Persists and loads metadata from disk in YAML format.
-"""
+# yaml_metadata_repository.py
+# License: MIT
 
 import os
 import threading
-from typing import Dict
+from typing import Dict, List
 from darca_log_facility.logger import DarcaLogger
 from darca_yaml.yaml_utils import YamlUtils
-from darca_space_manager import config
+from darca_space_manager.config import get_directories
+from darca_space_manager.metaspace.metaspace_backend import MetaspaceBackend
 
 logger = DarcaLogger(name="space_registry").get_logger()
 
-REGISTRY_FILE = os.path.join(config.get_directories()["METADATA_DIR"], "spaces_registry.yaml")
+REGISTRY_FILE = os.path.join(get_directories()["METADATA_DIR"], "spaces_registry.yaml")
 
 
-class SpaceMetadataRegistry:
+class YamlMetaspaceBackend(MetaspaceBackend):
     """
-    Central in-memory + on-disk registry for space metadata.
+    YAML-based implementation of the SpaceMetadataRepository interface.
+
+    Stores space metadata as a single YAML file with locking for thread safety.
     """
 
     def __init__(self):
-        self._lock = threading.RLock()  # 🔁 Prevent deadlocks
+        self._lock = threading.RLock()
         self._data = self._load_registry()
 
     def _load_registry(self) -> Dict:
@@ -31,7 +30,7 @@ class SpaceMetadataRegistry:
             logger.info("Registry file not found. Initializing new registry.")
             return {
                 "spaces": {},
-                "base_path": config.get_directories()["SPACE_DIR"]
+                "base_path": get_directories()["SPACE_DIR"]
             }
 
         try:
@@ -55,7 +54,7 @@ class SpaceMetadataRegistry:
         with self._lock:
             return self._data.get("spaces", {}).get(name)
 
-    def list_spaces(self) -> list:
+    def list_spaces(self) -> List[dict]:
         with self._lock:
             return list(self._data.get("spaces", {}).values())
 

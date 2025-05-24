@@ -14,8 +14,8 @@ from darca_log_facility import DarcaLogger
 from darca_storage.interfaces.file_backend import FileBackend
 
 from .space_manager import SpaceManager
-from darca_space_manager.models.space_uri import SpaceURI
-from darca_space_manager.core.space_admin.space_path_manager import SpacePathManager
+from darca_space_manager.metaspace.models import SpaceURI
+from darca_space_manager.realspace.space_path_service import SpacePathService
 
 logger = DarcaLogger(name="space_executor").get_logger()
 
@@ -107,7 +107,7 @@ class SpaceExecutor:
             )
 
         try:
-            resolved_cwd = SpacePathManager().resolve_path(space.path, uri.relative_path)
+            resolved_cwd = SpacePathService().resolve_path(space.path, uri.relative_path)
 
             if not self._backend.exists(resolved_cwd):
                 raise SpaceExecutorException(

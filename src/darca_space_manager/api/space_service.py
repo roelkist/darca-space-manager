@@ -1,11 +1,16 @@
 from typing import Optional, Union, List, Dict
 from darca_storage.interfaces.file_backend import FileBackend
 
-from darca_space_manager.core.space_utils.space_manager import SpaceManager
-from darca_space_manager.core.space_utils.space_file_manager import SpaceFileManager
-from darca_space_manager.core.space_utils.space_executor import SpaceExecutor
-from darca_space_manager.models.space_uri import SpaceURI
-from darca_space_manager.models.space import Space
+from darca_space_manager.realspace.space_manager import SpaceManager
+from darca_space_manager.realspace.space_file_manager import SpaceFileManager
+from darca_space_manager.realspace.space_executor import SpaceExecutor
+
+from darca_space_manager.metaspace.models import SpaceURI
+from darca_space_manager.metaspace.models import Space
+
+from darca_space_manager.lock.file_lock_manager import FileLockManager
+from darca_space_manager.repository.yaml_repository_backend import YamlRepositoryBackend
+from darca_space_manager.realspace.space_path_service import SpacePathService
 
 class SpaceService:
     """
@@ -14,7 +19,10 @@ class SpaceService:
 
     def __init__(self, backend: FileBackend):
         self._backend = backend
-        self._manager = SpaceManager(backend=self._backend)
+        self._metadata_repo = YamlRepositoryBackend()
+        self._lock_manager = FileLockManager()
+        self._path_service = SpacePathService()
+        self._manager = SpaceManager(backend=self._backend, metadata_repo=self._metadata_repo, lock_manager=self._lock_manager, path_service=self._path_service)
         self._file_manager = SpaceFileManager(space_manager=self._manager)
         self._executor = SpaceExecutor(space_manager=self._manager)
 

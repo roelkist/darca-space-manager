@@ -14,10 +14,13 @@ from darca_exception.exception import DarcaException
 from darca_log_facility.logger import DarcaLogger
 from darca_storage.interfaces.file_backend import FileBackend
 
-from darca_space_manager.core.space_admin.space_registry import SpaceMetadataRegistry
-from darca_space_manager.core.space_admin.space_path_manager import SpacePathManager
-from darca_space_manager.core.space_admin.space_operation_lock import SpaceOperationLock
-from darca_space_manager.models.space import Space
+from darca_space_manager.realspace.space_path_service import SpacePathService
+
+from darca_space_manager.metaspace.models import Space
+from darca_space_manager.metaspace.metaspace_backend import MetaspaceBackend
+
+from darca_space_manager.lock.lock_manager import LockManager
+from darca_space_manager.lock.operation_lock import OperationLock
 
 logger = DarcaLogger(name="space_manager").get_logger()
 
@@ -37,10 +40,18 @@ class SpaceManager:
     API layer for managing logical spaces with ownership and access control.
     """
 
-    def __init__(self, backend: FileBackend):
-        self._registry = SpaceMetadataRegistry()
+    def __init__(
+            self, 
+            backend: FileBackend,
+            metadata_repo: MetaspaceBackend,
+            lock_manager: LockManager,
+            path_service: SpacePathService,
+            ):
         self._backend = backend
-
+        self._registry = metadata_repo
+        self._locks = lock_manager
+        self._path = path_service
+        
     def _assert_access(self, space: Space, user: Optional[str]):
         if user is None:
             return
@@ -102,7 +113,7 @@ class SpaceManager:
                 metadata={"space": name},
             )
 
-        with SpaceOperationLock(name):
+        with OperationLock(name):
             try:
                 if parent_path:
                     parts = parent_path.strip("/").split("/")
@@ -122,7 +133,7 @@ class SpaceManager:
                     base_path = base_space.path
                     destination_path = os.path.normpath(os.path.join(base_path, relative_subpath, name))
 
-                    SpacePathManager().ensure_within_space(base_path, destination_path)
+                    SpacePathService().ensure_within_space(base_path, destination_path)
                     self._backend.mkdir(os.path.dirname(destination_path), parents=True)
                 else:
                     destination_path = os.path.join(
@@ -254,7 +265,7 @@ class SpaceManager:
                     metadata={"conflict": s["name"], "target_path": new_path},
                 )
 
-        with SpaceOperationLock(old_name), SpaceOperationLock(new_name):
+        with OperationLock(old_name), OperationLock(new_name):
             try:
                 self._backend.rename(old_path, new_path)
 
@@ -286,7 +297,7 @@ class SpaceManager:
 
     @contextmanager
     def _acquire_multiple_locks(self, space_names: list):
-        locks = [SpaceOperationLock(n) for n in sorted(set(space_names))]
+        locks = [OperationLock(n) for n in sorted(set(space_names))]
         try:
             for lock in locks:
                 lock.__enter__()

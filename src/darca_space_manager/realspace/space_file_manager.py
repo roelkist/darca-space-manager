@@ -16,9 +16,9 @@ from darca_yaml.yaml_utils import YamlUtils
 from darca_storage.interfaces.file_backend import FileBackend
 
 from .space_manager import SpaceManager
-from darca_space_manager.models.space_uri import SpaceURI
-from darca_space_manager.core.space_admin.space_path_manager import SpacePathManager
-from darca_space_manager.models.space import Space
+from darca_space_manager.metaspace.models import SpaceURI
+from darca_space_manager.realspace.space_path_service import SpacePathService
+from darca_space_manager.metaspace.models import Space
 
 
 logger = DarcaLogger(name="space_file_manager").get_logger()
@@ -55,7 +55,7 @@ class SpaceFileManager:
                 error_code="SPACE_NOT_FOUND",
                 metadata={"space": space_uri.space_name},
             )
-        return SpacePathManager().resolve_path(space.path, space_uri.relative_path)
+        return SpacePathService().resolve_path(space.path, space_uri.relative_path)
 
     def _touch_space_metadata(self, space_name: str):
         space = self._space_manager.get_space(space_name)

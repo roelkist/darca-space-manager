@@ -14,7 +14,7 @@ from darca_space_manager import config
 logger = DarcaLogger(name="space_lock").get_logger()
 
 
-class SpaceOperationLock:
+class OperationLock:
     """
     File-based per-space locking using fcntl.
     Prevents concurrent modification of the same space by using
