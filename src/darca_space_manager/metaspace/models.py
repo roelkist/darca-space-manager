@@ -6,7 +6,7 @@ class Space(BaseModel):
     name: str
     path: str
     label: Optional[str] = None
-    parent: Optional[str] = None
+    repository: str  
     created_at: datetime
     last_modified_at: datetime
 

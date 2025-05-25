@@ -1,6 +1,7 @@
 from typing import Optional, Dict
 from pydantic import BaseModel, SecretStr, Field
 from enum import Enum
+import os
 
 
 class StorageScheme(str, Enum):

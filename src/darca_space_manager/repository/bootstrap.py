@@ -1,12 +1,12 @@
 import os
-from darca_space_manager.repository.yaml_repository_backend import YamlRepositoryBackend
-from darca_space_manager.repository.repository_backend import RepositoryBackend
+from darca_space_manager.repository.yaml_repository_registry import YamlRepositoryRegistry
+from darca_space_manager.repository.repository_registry import RepositoryRegistry
 
 # Placeholder for future DB repository
 # from darca_space_manager.core.space_admin.db_backend_repository import DatabaseSpaceBackendRepository
 
 
-def get_backend_repository() -> RepositoryBackend:
+def get_repository_registry() -> RepositoryRegistry:
     mode = os.getenv("DARCA_BACKEND_MODE", "yaml").lower()
 
     if mode == "database":
@@ -18,4 +18,4 @@ def get_backend_repository() -> RepositoryBackend:
         # )
 
     profile_dir = os.getenv("DARCA_PROFILE_DIR", os.path.expanduser("~/.local/share/darca_space/profiles"))
-    return YamlRepositoryBackend(profile_dir)
+    return YamlRepositoryRegistry(profile_dir)

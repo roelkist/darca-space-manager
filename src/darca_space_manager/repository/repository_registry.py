@@ -6,7 +6,7 @@ from typing import List
 from darca_space_manager.repository.models import Repository
 
 
-class RepositoryBackend(ABC):
+class RepositoryRegistry(ABC):
     """
     Abstract interface for loading and managing space backend profiles.
 

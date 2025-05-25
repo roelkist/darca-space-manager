@@ -58,7 +58,7 @@ class SpaceExecutor:
 
     def run_in_space(
         self,
-        uri: Union[str, SpaceURI],
+        space: str,
         command: Union[List[str], str],
         capture_output: bool = True,
         check: bool = True,
@@ -84,17 +84,6 @@ class SpaceExecutor:
         Raises:
             SpaceExecutorException: On failures.
         """
-        if isinstance(uri, str):
-            uri = SpaceURI.from_str(uri)
-
-        space = self._space_manager.get_space(uri.space_name)
-        if not space:
-            logger.error(f"❌ Space '{uri.space_name}' not found.")
-            raise SpaceExecutorException(
-                message=f"Space '{uri.space_name}' does not exist.",
-                metadata={"space": uri.space_name},
-            )
-
         # Access control check
         try:
             self._space_manager._assert_access(space, user)
@@ -102,42 +91,40 @@ class SpaceExecutor:
             raise SpaceExecutorException(
                 message=str(e),
                 error_code="EXEC_ACCESS_DENIED",
-                metadata={"space": space.name, "user": user},
+                metadata={"space": space, "user": user},
                 cause=e,
             )
 
         try:
-            resolved_cwd = SpacePathService().resolve_path(space.path, uri.relative_path)
-
-            if not self._backend.exists(resolved_cwd):
+            if not self._backend.exists(space):
                 raise SpaceExecutorException(
-                    message=f"Resolved path '{resolved_cwd}' does not exist in space '{uri.space_name}'.",
-                    metadata={"space": uri.space_name, "path": resolved_cwd},
+                    message=f"Resolved path '{space}' does not exist in space '{space}'.",
+                    metadata={"space": space, "path": space},
                 )
 
-            logger.debug(f"📌 Running command in space '{uri.space_name}' at '{resolved_cwd}': {command}")
+            logger.debug(f"📌 Running command in space '{space}' at '{space}': {command}")
 
             result = self._executor.run(
                 command=command,
                 capture_output=capture_output,
                 check=check,
-                cwd=resolved_cwd,
+                cwd=space,
                 env=env,
                 timeout=timeout,
             )
 
             logger.info(
-                f"✅ Command '{command}' executed in space '{uri.space_name}' with return code {result.returncode}"
+                f"✅ Command '{command}' executed in space '{space}' with return code {result.returncode}"
             )
 
             return result
 
         except DarcaExecError as e:
-            logger.error(f"❌ Command execution failed in space '{uri.space_name}'.", exc_info=True)
+            logger.error(f"❌ Command execution failed in space '{space}'.", exc_info=True)
             raise SpaceExecutorException(
-                message=f"Command failed in space '{uri.space_name}'.",
+                message=f"Command failed in space '{space}'.",
                 metadata={
-                    "space": uri.space_name,
+                    "space": space,
                     "command": e.metadata.get("command"),
                     "returncode": e.metadata.get("returncode"),
                     "stdout": e.metadata.get("stdout"),
@@ -146,9 +133,9 @@ class SpaceExecutor:
                 cause=e,
             )
         except Exception as e:
-            logger.error(f"❌ Unexpected error while running command in space '{uri.space_name}'.", exc_info=True)
+            logger.error(f"❌ Unexpected error while running command in space '{space}'.", exc_info=True)
             raise SpaceExecutorException(
-                message=f"Unexpected error running command in space '{uri.space_name}'.",
-                metadata={"space": uri.space_name, "command": command},
+                message=f"Unexpected error running command in space '{space}'.",
+                metadata={"space": space, "command": command},
                 cause=e,
             )

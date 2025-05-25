@@ -6,10 +6,10 @@ import yaml
 from typing import Dict, List
 
 from darca_space_manager.repository.models import Repository
-from darca_space_manager.repository.repository_backend import RepositoryBackend
+from darca_space_manager.repository.repository_registry import RepositoryRegistry
 
 
-class YamlRepositoryBackend(RepositoryBackend):
+class YamlRepositoryRegistry(RepositoryRegistry):
     """
     Loads backend profiles from a YAML directory.
     Each YAML file represents one profile (named by its `name` field).
