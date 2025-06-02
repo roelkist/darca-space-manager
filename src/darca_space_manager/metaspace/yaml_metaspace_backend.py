@@ -3,7 +3,7 @@
 
 import os
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 
 from darca_log_facility.logger import DarcaLogger
@@ -115,7 +115,7 @@ class YamlMetaspaceBackend(MetaspaceBackend):
 
             space_data = self._data["spaces"].pop(old_name)
             space_data["name"] = new_name
-            space_data["last_modified_at"] = datetime.utcnow().isoformat()
+            space_data["last_modified_at"] = datetime.now(timezone.utc).isoformat()
             self._data["spaces"][new_name] = space_data
             self.save_registry()
             return space_data
@@ -157,7 +157,7 @@ class YamlMetaspaceBackend(MetaspaceBackend):
         space_data.update(patch)
 
         if auto_touch:
-            space_data["last_modified_at"] = datetime.utcnow().isoformat()
+            space_data["last_modified_at"] = datetime.now(timezone.utc).isoformat()
 
         self.save_registry()
         return space_data
@@ -165,4 +165,4 @@ class YamlMetaspaceBackend(MetaspaceBackend):
     def _set_created_at_internal(self, name: str):
         # Only set if not already present (guarded internally)
         if "created_at" not in self._data["spaces"][name]:
-            self._data["spaces"][name]["created_at"] = datetime.utcnow().isoformat()
+            self._data["spaces"][name]["created_at"] = datetime.now(timezone.utc).isoformat()

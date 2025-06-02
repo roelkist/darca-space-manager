@@ -7,7 +7,7 @@ from datetime import datetime
 from darca_storage.client import StorageClient
 from darca_space_manager.lock.lock_manager import LockManager
 from darca_space_manager.metaspace.models import Space, SpaceURI
-from darca_space_manager.iospace.iospace_file import IOSpaceFile
+from darca_space_manager.iospace.iospace_file import IOSpaceFile, IOSpaceFileException
 from darca_space_manager.iospace.iospace_exec import IOSpaceExec
 from darca_space_manager.metaspace.metaspace_backend import MetaspaceBackend
 from darca_space_manager.masterspace.masterspace_backend import MasterspaceBackend
@@ -32,12 +32,28 @@ class SpaceService:
         data = self._metaspace.get_space(name)
         return Space.from_dict(data) if data else None
 
-    async def list_spaces(self, label: Optional[str] = None, user: Optional[str] = None) -> List[Space]:
-        return [
-            Space.from_dict(s)
-            for s in self._metaspace.list_spaces()
-            if not label or s.get("label") == label
-        ]
+    async def list_spaces(
+        self,
+        label: Optional[str] = None,
+        user: Optional[str] = None,
+    ) -> List[Space]:
+        """
+        Return every space whose metadata is valid **and** (optionally)
+        matches *label*.
+
+        Any registry entry that cannot be parsed into a `Space` model
+        (e.g. missing `repository`) is ignored.
+        """
+        result: List[Space] = []
+        for raw in self._metaspace.list_spaces():
+            if label and raw.get("label") != label:
+                continue
+            try:
+                result.append(Space.from_dict(raw))
+            except Exception:
+                # malformed / legacy entry – skip it
+                continue
+        return result
 
     async def create_space(
         self,
@@ -59,34 +75,48 @@ class SpaceService:
             )
 
             space = await self.get_space(name)
-            client = await self._masterspace_backend.get_client(name)
+            client = await self._masterspace_backend.get_client(repository)
             iospace = IOSpaceFile(space=space, client=client)
             await iospace.create_dir(name)
 
             return space
 
-    async def delete_space(self, name: str, force: bool = False, user: Optional[str] = None) -> bool:
+    async def delete_space(
+        self,
+        name: str,
+        *,
+        user: Optional[str] = None,
+    ) -> bool:
+        """
+        Delete **one** space — both its metadata entry and its storage
+        directory (if that directory still exists).
+
+        Returns
+        -------
+        bool
+            True  – space was present in the registry and is now gone  
+            False – space did not exist
+        """
         space = await self.get_space(name)
         if not space:
             return False
 
-        base_prefix = name + "/"
-        nested = [
-            Space.from_dict(s)
-            for s in self._metaspace.list_spaces()
-            if s["name"] != name and s["name"].startswith(base_prefix)
-        ]
-        lock_names = [name] + [s.name for s in nested]
+        async with self._lock_manager.acquire(name):
+            client = await self._masterspace_backend.get_client(space)
 
-        async with self._lock_manager.acquire_many(lock_names):
-            client = await self._masterspace_backend.get_client(name)
-            iospace = IOSpaceFile(space=space, client=client)
-            await iospace.delete_dir(name)
+            # Remove on-disk data only if the directory is there
+            if await client.exists(name):
+                iospace = IOSpaceFile(space=space, client=client)
+                try:
+                    await iospace.delete_dir(name)
+                except IOSpaceFileException as exc:
+                    # Ignore "directory not found" – any other error bubbles up
+                    cause = exc.__cause__ or exc
+                    if "DIRECTORY_NOT_FOUND" not in str(cause):
+                        raise
 
+            # Always drop the metadata entry
             self._metaspace.remove_space(name)
-            for s in nested:
-                self._metaspace.remove_space(s.name)
-
             return True
 
     async def rename_space(self, old_name: str, new_name: str, user: Optional[str] = None) -> Space:
@@ -95,7 +125,7 @@ class SpaceService:
             if not old_space:
                 raise ValueError(f"Space '{old_name}' does not exist")
 
-            client = await self._masterspace_backend.get_client(old_name)
+            client = await self._masterspace_backend.get_client(old_space.repository)
             iospace = IOSpaceFile(space=old_space, client=client)
             await iospace.move(old_name, new_name)
 
@@ -115,14 +145,14 @@ class SpaceService:
     async def read_file(self, uri: Union[str, SpaceURI], *, load: bool = False, user: Optional[str] = None):
         uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
         space = await self.get_space(uri.space_name)
-        client = await self._masterspace_backend.get_client(uri.space_name)
+        client = await self._masterspace_backend.get_client(space.repository)
         return await IOSpaceFile(space=space, client=client).read_file(uri.path, load=load)
 
     async def write_file(self, uri: Union[str, SpaceURI], content: Union[str, dict], *, user: Optional[str] = None):
         uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
         async with self._lock_manager.acquire(uri.space_name):
             space = await self.get_space(uri.space_name)
-            client = await self._masterspace_backend.get_client(uri.space_name)
+            client = await self._masterspace_backend.get_client(space.repository)
             await IOSpaceFile(space=space, client=client).write_file(uri.path, content)
             self._metaspace.touch(uri.space_name)
             return True
@@ -131,7 +161,7 @@ class SpaceService:
         uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
         async with self._lock_manager.acquire(uri.space_name):
             space = await self.get_space(uri.space_name)
-            client = await self._masterspace_backend.get_client(uri.space_name)
+            client = await self._masterspace_backend.get_client(space.repository)
             await IOSpaceFile(space=space, client=client).delete_file(uri.path)
             self._metaspace.touch(uri.space_name)
             return True
@@ -139,13 +169,13 @@ class SpaceService:
     async def file_exists(self, uri: Union[str, SpaceURI], *, user: Optional[str] = None) -> bool:
         uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
         space = await self.get_space(uri.space_name)
-        client = await self._masterspace_backend.get_client(uri.space_name)
+        client = await self._masterspace_backend.get_client(space.repository)
         return await IOSpaceFile(space=space, client=client).file_exists(uri.path)
 
     async def file_last_modified(self, uri: Union[str, SpaceURI], *, user: Optional[str] = None) -> float:
         uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
         space = await self.get_space(uri.space_name)
-        client = await self._masterspace_backend.get_client(uri.space_name)
+        client = await self._masterspace_backend.get_client(space.repository)
         return await IOSpaceFile(space=space, client=client).file_last_modified(uri.path)
 
     # ------------------------
@@ -156,7 +186,7 @@ class SpaceService:
         uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
         async with self._lock_manager.acquire(uri.space_name):
             space = await self.get_space(uri.space_name)
-            client = await self._masterspace_backend.get_client(uri.space_name)
+            client = await self._masterspace_backend.get_client(space.repository)
             await IOSpaceFile(space=space, client=client).create_dir(uri.path)
             self._metaspace.touch(uri.space_name)
 
@@ -164,7 +194,7 @@ class SpaceService:
         uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
         async with self._lock_manager.acquire(uri.space_name):
             space = await self.get_space(uri.space_name)
-            client = await self._masterspace_backend.get_client(uri.space_name)
+            client = await self._masterspace_backend.get_client(space.repository)
             await IOSpaceFile(space=space, client=client).delete_dir(uri.path)
             self._metaspace.touch(uri.space_name)
 
@@ -177,7 +207,7 @@ class SpaceService:
 
         async with self._lock_manager.acquire(uri_from.space_name):
             space = await self.get_space(uri_from.space_name)
-            client = await self._masterspace_backend.get_client(uri_from.space_name)
+            client = await self._masterspace_backend.get_client(space.repository)
             await IOSpaceFile(space=space, client=client).move(uri_from.path, uri_to.path)
             self._metaspace.touch(uri_from.space_name)
 
@@ -199,7 +229,7 @@ class SpaceService:
         uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
         async with self._lock_manager.acquire(uri.space_name):
             space = await self.get_space(uri.space_name)
-            client = await self._masterspace_backend.get_client(uri.space_name)
+            client = await self._masterspace_backend.get_client(space.repository)
             executor = IOSpaceExec(space=space, client=client)
             result = await executor.run(
                 command=command,

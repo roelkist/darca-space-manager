@@ -9,8 +9,7 @@ class RepositoryMasterspaceBackend(MasterspaceBackend):
     def __init__(self):
         self._client_cache: dict[str, StorageClient] = {}
 
-    async def get_client(self, space):
-        repo = space.repository
+    async def get_client(self, repo: str) -> StorageClient:
         if repo in self._client_cache:
             return self._client_cache[repo]
 
