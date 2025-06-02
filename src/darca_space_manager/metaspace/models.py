@@ -4,13 +4,10 @@ from pydantic import BaseModel, field_validator
 
 class Space(BaseModel):
     name: str
-    path: str
     label: Optional[str] = None
-    repository: str  
+    repository: str
     created_at: datetime
     last_modified_at: datetime
-
-    # Access control fields
     owner: Optional[str] = None
     permissions: Optional[List[str]] = None
 

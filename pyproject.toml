@@ -12,12 +12,14 @@ python = "^3.12"
 pydantic = "^2.11.4"
 typing-extensions = "^4.13.2" 
 darca-log-facility = "^0.1.0"
-darca-exception = "^0.1.0"
+darca-exception = "^0.1.1"
 darca-file-utils = "^0.1.0"
 darca-yaml = "^0.2.0"
 darca-executor = "^0.1.0"
 fastapi = "^0.115.12"
 uvicorn = "^0.34.2"
+darca-storage = "^0.0.1"
+darca-repository = "^0.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -32,6 +34,7 @@ mypy = "^1.15.0"
 mypy-extensions = "^1.0.0"
 pre-commit = "^4.1.0"
 coverage-badge = "^1.1.2"
+pytest-asyncio = "^1.0.0"
 
 
 [tool.poetry.group.docs.dependencies]
@@ -50,3 +53,8 @@ sphinxcontrib-plantuml = "^0.30"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+asyncio_default_test_loop_scope = "function"

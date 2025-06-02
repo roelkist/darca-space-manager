@@ -2,10 +2,9 @@
 # License: MIT
 
 from typing import List
-from contextlib import AbstractContextManager, ExitStack
+from contextlib import AbstractContextManager, ExitStack, asynccontextmanager
 from darca_space_manager.lock.lock_manager import LockManager
 from darca_space_manager.lock.operation_lock import OperationLock
-
 
 class FileLockManager(LockManager):
     """
@@ -13,21 +12,18 @@ class FileLockManager(LockManager):
     Wraps SpaceOperationLock for interface compatibility.
     """
 
-    def acquire(self, space_name: str) -> AbstractContextManager:
-        return OperationLock(space_name)
+    def acquire(self, space_name: str):
+        @asynccontextmanager
+        async def async_lock():
+            with OperationLock(space_name):
+                yield
+        return async_lock()
 
-    def acquire_many(self, space_names: List[str]) -> AbstractContextManager:
-        class MultiLockContext(AbstractContextManager):
-            def __init__(self, names: List[str]):
-                self._names = sorted(set(names))
-                self._stack = ExitStack()
-
-            def __enter__(self):
-                for name in self._names:
-                    self._stack.enter_context(OperationLock(name))
-                return self
-
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                self._stack.__exit__(exc_type, exc_val, exc_tb)
-
-        return MultiLockContext(space_names)
+    def acquire_many(self, space_names: List[str]):
+        @asynccontextmanager
+        async def async_multi_lock():
+            with ExitStack() as stack:
+                for name in sorted(set(space_names)):
+                    stack.enter_context(OperationLock(name))
+                yield
+        return async_multi_lock()

@@ -7,8 +7,6 @@ and metadata integrity with safe concurrency features.
 """
 
 from darca_space_manager.api.space_service import SpaceService
-from darca_space_manager.models.space import Space
-from darca_space_manager.models.space_uri import SpaceURI
 
 __all__ = [
     "SpaceService",

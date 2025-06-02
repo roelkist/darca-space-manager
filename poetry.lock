@@ -409,14 +409,14 @@ setuptools = "*"
 
 [[package]]
 name = "darca-exception"
-version = "0.1.0"
+version = "0.1.1"
 description = "Exception module for reuse along projects."
 optional = false
 python-versions = "<4.0,>=3.12"
 groups = ["main"]
 files = [
-    {file = "darca_exception-0.1.0-py3-none-any.whl", hash = "sha256:9fb2c4fae92da5397de16ffcaf3253d95d5d7fa458ba9eb1b496e6466bafd7ae"},
-    {file = "darca_exception-0.1.0.tar.gz", hash = "sha256:e72905279efc07a15c2248c4dcb25ab25204520129ce400773a1c94e2d2efd8d"},
+    {file = "darca_exception-0.1.1-py3-none-any.whl", hash = "sha256:f28e629a63629d0d7c5375e11add20baed8f30acb85bdd6be742800e8e7e0cf1"},
+    {file = "darca_exception-0.1.1.tar.gz", hash = "sha256:0c6a4d81c3c25af31c49ca9e3bc7a0a90039e87d1237f65daf9295abb60ab8a6"},
 ]
 
 [package.dependencies]
@@ -440,18 +440,18 @@ darca-log-facility = ">=0.1.0,<0.2.0"
 
 [[package]]
 name = "darca-file-utils"
-version = "0.1.0"
+version = "0.1.1"
 description = "Logging facility for reuse along projects."
 optional = false
 python-versions = "<4.0,>=3.12"
 groups = ["main"]
 files = [
-    {file = "darca_file_utils-0.1.0-py3-none-any.whl", hash = "sha256:d8ae10821a29993a0cb22256af465521726059c7ed7b303cf05d05db5fefdca5"},
-    {file = "darca_file_utils-0.1.0.tar.gz", hash = "sha256:63a4ce4f9aa1d16753d5496af2fb3371645f4343b6a5b267df62ad6a189e5388"},
+    {file = "darca_file_utils-0.1.1-py3-none-any.whl", hash = "sha256:c01e90dcc1cccb535402971ba5ddf8e56d7d0fc3e2efbbcd0742bc3b10fe1a5a"},
+    {file = "darca_file_utils-0.1.1.tar.gz", hash = "sha256:b24f4fa16cf824a2bc971dff2140cfdd475d204cc15f0c22d91692be0fcd7847"},
 ]
 
 [package.dependencies]
-darca-exception = ">=0.1.0,<0.2.0"
+darca-exception = ">=0.1.1,<0.2.0"
 darca-log-facility = ">=0.1.0,<0.2.0"
 pyyaml = ">=6.0.2,<7.0.0"
 
@@ -469,6 +469,42 @@ files = [
 
 [package.dependencies]
 colorlog = ">=6.9.0,<7.0.0"
+
+[[package]]
+name = "darca-repository"
+version = "0.0.1"
+description = "Darca repository management library"
+optional = false
+python-versions = "<4.0,>=3.12"
+groups = ["main"]
+files = [
+    {file = "darca_repository-0.0.1-py3-none-any.whl", hash = "sha256:9ad7b3c8fae9218b25d0a26e926cd7bb63494c3469d61500afd9f286658b0c60"},
+    {file = "darca_repository-0.0.1.tar.gz", hash = "sha256:7d62ec38a9b41a821098f8dead8f09ad985b615f31f8fd78938655b1450c642a"},
+]
+
+[package.dependencies]
+darca-exception = ">=0.1.1,<0.2.0"
+darca-storage = ">=0.0.1,<0.0.2"
+pydantic = ">=2.11.4,<3.0.0"
+typing-extensions = ">=4.13.2,<5.0.0"
+
+[[package]]
+name = "darca-storage"
+version = "0.0.1"
+description = "Storage instance with file operation support for multiple backends."
+optional = false
+python-versions = "<4.0,>=3.12"
+groups = ["main"]
+files = [
+    {file = "darca_storage-0.0.1-py3-none-any.whl", hash = "sha256:d05622c19c5b28e9957ff2c1566a9f9a2f4a3c28ac0a4790c3294170d8a58b47"},
+    {file = "darca_storage-0.0.1.tar.gz", hash = "sha256:86fa44299b76fe9add669c7c9e19380d4462776a3573e5027409cd135f16c1f7"},
+]
+
+[package.dependencies]
+darca-exception = ">=0.1.1,<0.2.0"
+darca-file-utils = ">=0.1.1,<0.2.0"
+darca-log-facility = ">=0.1.0,<0.2.0"
+typing-extensions = ">=4.13.2,<5.0.0"
 
 [[package]]
 name = "darca-yaml"
@@ -1166,6 +1202,25 @@ pluggy = ">=1.5,<2"
 dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
 
 [[package]]
+name = "pytest-asyncio"
+version = "1.0.0"
+description = "Pytest support for asyncio"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "pytest_asyncio-1.0.0-py3-none-any.whl", hash = "sha256:4f024da9f1ef945e680dc68610b52550e36590a67fd31bb3b4943979a1f90ef3"},
+    {file = "pytest_asyncio-1.0.0.tar.gz", hash = "sha256:d15463d13f4456e1ead2594520216b225a16f781e144f8fdf6c5bb4667c48b3f"},
+]
+
+[package.dependencies]
+pytest = ">=8.2,<9"
+
+[package.extras]
+docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1)"]
+testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
+
+[[package]]
 name = "pytest-cov"
 version = "6.1.1"
 description = "Pytest plugin for measuring coverage."
@@ -1679,4 +1734,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "249a0f52518d5eb76baae432c93c152e465c4755c08dd2f834798513f0410993"
+content-hash = "35755f9b1076bbd37c3a4e8ebdfbcc569efa7d6d8c7da7e3c1a6b74c49ea0e71"

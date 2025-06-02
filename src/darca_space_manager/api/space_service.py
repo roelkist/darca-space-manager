@@ -1,124 +1,207 @@
+# src/darca_space_manager/api/space_service.py
+# License: MIT
+
 from typing import Optional, Union, List, Dict
-from darca_storage.interfaces.file_backend import FileBackend
+from datetime import datetime
 
+from darca_storage.client import StorageClient
 from darca_space_manager.lock.lock_manager import LockManager
-from darca_space_manager.metaspace.metaspace_backend import MetaspaceBackend
 from darca_space_manager.metaspace.models import Space, SpaceURI
-
-from darca_space_manager.realspace.space_manager import SpaceManager
-from darca_space_manager.realspace.space_file_manager import SpaceFileManager
-from darca_space_manager.realspace.space_executor import SpaceExecutor
-from darca_space_manager.realspace.space_path_service import SpacePathService
+from darca_space_manager.iospace.iospace_file import IOSpaceFile
+from darca_space_manager.iospace.iospace_exec import IOSpaceExec
+from darca_space_manager.metaspace.metaspace_backend import MetaspaceBackend
+from darca_space_manager.masterspace.masterspace_backend import MasterspaceBackend
 
 
 class SpaceService:
     def __init__(
         self,
-        backend: FileBackend,
         metaspace: MetaspaceBackend,
         lock_manager: LockManager,
+        masterspace_backend: MasterspaceBackend,
     ):
-        self._backend = backend
         self._metaspace = metaspace
         self._lock_manager = lock_manager
-        self._path_service = SpacePathService()
+        self._masterspace_backend = masterspace_backend
 
-        self._manager = SpaceManager(
-            backend=self._backend,
-            metadata_repo=self._metaspace,
-            lock_manager=self._lock_manager,  # no-op inside manager
-            path_service=self._path_service,
-        )
-        self._file_manager = SpaceFileManager(space_manager=self._manager)
-        self._executor = SpaceExecutor(space_manager=self._manager)
+    # ------------------------
+    # Metadata
+    # ------------------------
 
-    # --- Space Lifecycle ---
-
-    def create_space(self, name: str, label: str = "", parent: Optional[str] = None, user: Optional[str] = None) -> Space:
-        with self._lock_manager.acquire(name):
-            space = self._manager.create_space(name, label=label, parent_path=parent, user=user)
-            self._metaspace.add_space(space.name, space.to_dict())
-            return space
-
-    def delete_space(self, name: str, force: bool = False, user: Optional[str] = None) -> bool:
-        space_data = self._metaspace.get_space(name)
-        if not space_data:
-            return False
-
-        base_path = space_data["path"]
-        nested = [
-            s for s in self._metaspace.list_spaces()
-            if s["name"] != name and s["path"].startswith(base_path + "/")
-        ]
-
-        if nested and not force:
-            raise ValueError(f"Space '{name}' contains subspaces: {[s['name'] for s in nested]}")
-
-        lock_names = [name] + [s["name"] for s in nested]
-        with self._lock_manager.acquire_many(lock_names):
-            result = self._manager.delete_space(name, force=force, user=user)
-            self._metaspace.remove_space(name)
-            for sub in nested:
-                self._metaspace.remove_space(sub["name"])
-            return result
-
-    def rename_space(self, old_name: str, new_name: str, user: Optional[str] = None) -> Space:
-        with self._lock_manager.acquire_many([old_name, new_name]):
-            updated = self._manager.rename_space(old_name, new_name, user=user)
-            self._metaspace.remove_space(old_name)
-            self._metaspace.add_space(new_name, updated.to_dict())
-            return updated
-
-    def get_space(self, name: str) -> Optional[Space]:
+    async def get_space(self, name: str) -> Optional[Space]:
         data = self._metaspace.get_space(name)
         return Space.from_dict(data) if data else None
 
-    def get_space_info(self, name: str, user: Optional[str] = None) -> Space:
-        return self._manager.get_space_info(name, user=user)
+    async def list_spaces(self, label: Optional[str] = None, user: Optional[str] = None) -> List[Space]:
+        return [
+            Space.from_dict(s)
+            for s in self._metaspace.list_spaces()
+            if not label or s.get("label") == label
+        ]
 
-    def list_spaces(self, label_filter: Optional[str] = None, user: Optional[str] = None) -> List[Space]:
-        return self._manager.list_spaces(label_filter=label_filter, user=user)
+    async def create_space(
+        self,
+        name: str,
+        repository: str,
+        *,
+        label: Optional[str] = None,
+        owner: Optional[str] = None,
+        permissions: Optional[List[str]] = None,
+        user: Optional[str] = None,
+    ) -> Space:
+        async with self._lock_manager.acquire(name):
+            self._metaspace.add_space(
+                name=name,
+                label=label or "",
+                repository=repository,
+                owner=owner or user or "default_user",
+                permissions=permissions or ["read", "write"],
+            )
 
-    # --- File Operations ---
+            space = await self.get_space(name)
+            client = await self._masterspace_backend.get_client(name)
+            iospace = IOSpaceFile(space=space, client=client)
+            await iospace.create_dir(name)
 
-    def file_exists(self, uri: Union[str, SpaceURI], user: Optional[str] = None) -> bool:
-        return self._file_manager.file_exists(uri, user=user)
+            return space
 
-    def read_file(self, uri: Union[str, SpaceURI], load: bool = False, user: Optional[str] = None) -> Union[str, dict]:
-        return self._file_manager.get_file(uri, load=load, user=user)
+    async def delete_space(self, name: str, force: bool = False, user: Optional[str] = None) -> bool:
+        space = await self.get_space(name)
+        if not space:
+            return False
 
-    def write_file(self, uri: Union[str, SpaceURI], content: Union[str, dict], user: Optional[str] = None) -> bool:
-        with self._lock_manager.acquire(uri.space_name):
-            return self._file_manager.set_file(uri, content, user=user)
+        base_prefix = name + "/"
+        nested = [
+            Space.from_dict(s)
+            for s in self._metaspace.list_spaces()
+            if s["name"] != name and s["name"].startswith(base_prefix)
+        ]
+        lock_names = [name] + [s.name for s in nested]
 
-    def delete_file(self, uri: Union[str, SpaceURI], user: Optional[str] = None) -> bool:
-        with self._lock_manager.acquire(uri.space_name):
-            return self._file_manager.delete_file(uri, user=user)
+        async with self._lock_manager.acquire_many(lock_names):
+            client = await self._masterspace_backend.get_client(name)
+            iospace = IOSpaceFile(space=space, client=client)
+            await iospace.delete_dir(name)
 
-    def list_files(self, space_name: str, recursive: bool = False, files_only: bool = False, user: Optional[str] = None) -> List[str]:
-        return self._file_manager.list_files(space_name, recursive=recursive, files_only=files_only, user=user)
+            self._metaspace.remove_space(name)
+            for s in nested:
+                self._metaspace.remove_space(s.name)
 
-    def list_files_content(self, space_name: str, user: Optional[str] = None) -> List[dict]:
-        return self._file_manager.list_files_content(space_name, user=user)
+            return True
 
-    def file_last_modified(self, uri: Union[str, SpaceURI], user: Optional[str] = None) -> float:
-        return self._file_manager.get_file_last_modified(uri, user=user)
+    async def rename_space(self, old_name: str, new_name: str, user: Optional[str] = None) -> Space:
+        async with self._lock_manager.acquire_many([old_name, new_name]):
+            old_space = await self.get_space(old_name)
+            if not old_space:
+                raise ValueError(f"Space '{old_name}' does not exist")
 
-    # --- Command Execution ---
+            client = await self._masterspace_backend.get_client(old_name)
+            iospace = IOSpaceFile(space=old_space, client=client)
+            await iospace.move(old_name, new_name)
 
-    def run(
+            self._metaspace.rename_space(old_name, new_name)
+
+            return await self.get_space(new_name)
+
+    async def set_label(self, name: str, label: str) -> Space:
+        async with self._lock_manager.acquire(name):
+            self._metaspace.set_label(name, label)
+            return await self.get_space(name)
+
+    # ------------------------
+    # File I/O
+    # ------------------------
+
+    async def read_file(self, uri: Union[str, SpaceURI], *, load: bool = False, user: Optional[str] = None):
+        uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
+        space = await self.get_space(uri.space_name)
+        client = await self._masterspace_backend.get_client(uri.space_name)
+        return await IOSpaceFile(space=space, client=client).read_file(uri.path, load=load)
+
+    async def write_file(self, uri: Union[str, SpaceURI], content: Union[str, dict], *, user: Optional[str] = None):
+        uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
+        async with self._lock_manager.acquire(uri.space_name):
+            space = await self.get_space(uri.space_name)
+            client = await self._masterspace_backend.get_client(uri.space_name)
+            await IOSpaceFile(space=space, client=client).write_file(uri.path, content)
+            self._metaspace.touch(uri.space_name)
+            return True
+
+    async def delete_file(self, uri: Union[str, SpaceURI], *, user: Optional[str] = None):
+        uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
+        async with self._lock_manager.acquire(uri.space_name):
+            space = await self.get_space(uri.space_name)
+            client = await self._masterspace_backend.get_client(uri.space_name)
+            await IOSpaceFile(space=space, client=client).delete_file(uri.path)
+            self._metaspace.touch(uri.space_name)
+            return True
+
+    async def file_exists(self, uri: Union[str, SpaceURI], *, user: Optional[str] = None) -> bool:
+        uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
+        space = await self.get_space(uri.space_name)
+        client = await self._masterspace_backend.get_client(uri.space_name)
+        return await IOSpaceFile(space=space, client=client).file_exists(uri.path)
+
+    async def file_last_modified(self, uri: Union[str, SpaceURI], *, user: Optional[str] = None) -> float:
+        uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
+        space = await self.get_space(uri.space_name)
+        client = await self._masterspace_backend.get_client(uri.space_name)
+        return await IOSpaceFile(space=space, client=client).file_last_modified(uri.path)
+
+    # ------------------------
+    # Directory Operations
+    # ------------------------
+
+    async def create_dir(self, uri: Union[str, SpaceURI], user: Optional[str] = None):
+        uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
+        async with self._lock_manager.acquire(uri.space_name):
+            space = await self.get_space(uri.space_name)
+            client = await self._masterspace_backend.get_client(uri.space_name)
+            await IOSpaceFile(space=space, client=client).create_dir(uri.path)
+            self._metaspace.touch(uri.space_name)
+
+    async def delete_dir(self, uri: Union[str, SpaceURI], user: Optional[str] = None):
+        uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
+        async with self._lock_manager.acquire(uri.space_name):
+            space = await self.get_space(uri.space_name)
+            client = await self._masterspace_backend.get_client(uri.space_name)
+            await IOSpaceFile(space=space, client=client).delete_dir(uri.path)
+            self._metaspace.touch(uri.space_name)
+
+    async def move_path(self, uri_from: Union[str, SpaceURI], uri_to: Union[str, SpaceURI], user: Optional[str] = None):
+        uri_from = SpaceURI.from_str(uri_from) if isinstance(uri_from, str) else uri_from
+        uri_to = SpaceURI.from_str(uri_to) if isinstance(uri_to, str) else uri_to
+
+        if uri_from.space_name != uri_to.space_name:
+            raise ValueError("Cannot move paths between different spaces.")
+
+        async with self._lock_manager.acquire(uri_from.space_name):
+            space = await self.get_space(uri_from.space_name)
+            client = await self._masterspace_backend.get_client(uri_from.space_name)
+            await IOSpaceFile(space=space, client=client).move(uri_from.path, uri_to.path)
+            self._metaspace.touch(uri_from.space_name)
+
+    # ------------------------
+    # Execution
+    # ------------------------
+
+    async def run(
         self,
         uri: Union[str, SpaceURI],
         command: Union[List[str], str],
+        *,
         capture_output: bool = True,
         check: bool = True,
         env: Optional[dict] = None,
         timeout: Optional[int] = 30,
         user: Optional[str] = None,
     ):
-        with self._lock_manager.acquire(uri.space_name):
-            return self._executor.run_in_space(
-                uri=uri,
+        uri = SpaceURI.from_str(uri) if isinstance(uri, str) else uri
+        async with self._lock_manager.acquire(uri.space_name):
+            space = await self.get_space(uri.space_name)
+            client = await self._masterspace_backend.get_client(uri.space_name)
+            executor = IOSpaceExec(space=space, client=client)
+            result = await executor.run(
                 command=command,
                 capture_output=capture_output,
                 check=check,
@@ -126,3 +209,5 @@ class SpaceService:
                 timeout=timeout,
                 user=user,
             )
+            self._metaspace.touch(uri.space_name)
+            return result
